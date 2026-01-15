@@ -12,6 +12,7 @@ export type Bindings = {
   OSS_BUCKET: string
   OSS_REGION: string
   OSS_ENDPOINT: string
+  OSS_PREFIX?: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -40,7 +41,10 @@ app.post('/api/upload', async (c) => {
     
     // Convert File to ArrayBuffer
     const imageBuffer = await image.arrayBuffer()
-    const imagePath = `sessions/${sessionId}/original.jpg`
+    
+    // Construct OSS Path with Prefix
+    const prefix = c.env.OSS_PREFIX ? c.env.OSS_PREFIX.replace(/\/+$/, '') + '/' : ''
+    const imagePath = `${prefix}sessions/${sessionId}/original.jpg`
 
     // Create Task in DB
     try {
@@ -97,7 +101,7 @@ app.post('/api/upload', async (c) => {
             `
             
             const generatedImageBuffer = await ai.generateImage(prompt)
-            const generatedPath = `sessions/${sessionId}/generated.jpg`
+            const generatedPath = `${prefix}sessions/${sessionId}/generated.jpg`
 
             // 6. Upload Generated Image
             await oss.putObject(generatedPath, generatedImageBuffer, 'image/jpeg')

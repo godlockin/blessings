@@ -12,6 +12,7 @@ account_id = "700ed004abf3810985c88d2c1bfa8733"
 # OSS_BUCKET = ""
 # OSS_REGION = ""
 # OSS_ENDPOINT = ""
+# OSS_PREFIX = "" # Optional: e.g. "test/my_folder/"
 
 [[d1_databases]]
 binding = "DB"

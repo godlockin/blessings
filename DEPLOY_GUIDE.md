@@ -43,6 +43,8 @@ npx wrangler secret put OSS_ACCESS_KEY_SECRET
 npx wrangler secret put OSS_BUCKET
 npx wrangler secret put OSS_REGION
 npx wrangler secret put OSS_ENDPOINT
+# Optional: OSS Path Prefix
+# npx wrangler secret put OSS_PREFIX # e.g., "test/my_folder/"
 ```
 
 ## 3. Deploy Backend
