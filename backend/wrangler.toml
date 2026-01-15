@@ -1,0 +1,19 @@
+name = "blessings-backend"
+compatibility_date = "2024-01-01"
+compatibility_flags = [ "nodejs_compat" ]
+account_id = "700ed004abf3810985c88d2c1bfa8733"
+
+[vars]
+# Placeholder for secrets. 
+# You should set these in Cloudflare Dashboard or .dev.vars for local dev
+# GEMINI_API_KEY = ""
+# OSS_ACCESS_KEY_ID = ""
+# OSS_ACCESS_KEY_SECRET = ""
+# OSS_BUCKET = ""
+# OSS_REGION = ""
+# OSS_ENDPOINT = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "blessings-db"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" # Replace with actual DB ID

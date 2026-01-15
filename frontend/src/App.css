@@ -1,0 +1,50 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card {
+  background: #2a2a2a;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 600px;
+}
+
+.image-container {
+  margin: 1rem 0;
+}
+
+.preview-img, .result-img {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  border: 2px solid #444;
+}
+
+.status-text {
+  font-weight: bold;
+  color: #fbbf24;
+}
+
+.error {
+  color: #ef4444;
+}
+
+button {
+  margin-top: 1rem;
+  padding: 0.6em 1.2em;
+}
+
+.download-btn {
+  background-color: #10b981;
+}
