@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import './App.css'
 
+// Default API base URL - configurable via environment variable or manual setting
+const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE || '/api'
+
 function App() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -10,6 +13,28 @@ function App() {
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [originalUrl, setOriginalUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Settings state
+  const [showSettings, setShowSettings] = useState(false)
+  const [apiBase, setApiBase] = useState<string>(() => {
+    return localStorage.getItem('blessings_api_base') || DEFAULT_API_BASE
+  })
+  const [tempApiBase, setTempApiBase] = useState<string>(apiBase)
+
+  // Save API base to localStorage when changed
+  const handleSaveSettings = () => {
+    const trimmedUrl = tempApiBase.trim().replace(/\/$/, '') // Remove trailing slash
+    setApiBase(trimmedUrl)
+    localStorage.setItem('blessings_api_base', trimmedUrl)
+    setShowSettings(false)
+  }
+
+  const handleResetSettings = () => {
+    setTempApiBase(DEFAULT_API_BASE)
+    setApiBase(DEFAULT_API_BASE)
+    localStorage.removeItem('blessings_api_base')
+    setShowSettings(false)
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -35,7 +60,7 @@ function App() {
     }
 
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch(`${apiBase}/upload`, {
         method: 'POST',
         body: formData
       })
@@ -70,7 +95,7 @@ function App() {
   const pollStatus = async (tid: string) => {
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/status/${tid}`)
+        const res = await fetch(`${apiBase}/status/${tid}`)
         const data = await res.json()
 
         setStatus(data.status)
@@ -98,7 +123,7 @@ function App() {
 
   const fetchResult = async (tid: string) => {
     try {
-      const res = await fetch(`/api/result/${tid}`)
+      const res = await fetch(`${apiBase}/result/${tid}`)
       const data = await res.json()
       setResultUrl(data.url)
       setOriginalUrl(data.originalUrl)
@@ -146,6 +171,46 @@ function App() {
       <div className="container">
         <h1>🧧 新年祝福生成器</h1>
         <p className="subtitle">Upload your photo and create a festive Chinese New Year blessing</p>
+
+        {/* Settings Button */}
+        <button
+          className="settings-btn"
+          onClick={() => { setTempApiBase(apiBase); setShowSettings(!showSettings); }}
+          title="Settings"
+        >
+          ⚙️
+        </button>
+
+        {/* Settings Panel */}
+        {showSettings && (
+          <div className="settings-panel">
+            <h3>⚙️ 设置 / Settings</h3>
+            <div className="settings-item">
+              <label>后端地址 (API Base URL):</label>
+              <input
+                type="text"
+                className="settings-input"
+                value={tempApiBase}
+                onChange={(e) => setTempApiBase(e.target.value)}
+                placeholder="https://your-backend.workers.dev/api"
+              />
+            </div>
+            <div className="settings-buttons">
+              <button className="settings-save-btn" onClick={handleSaveSettings}>
+                💾 保存
+              </button>
+              <button className="settings-reset-btn" onClick={handleResetSettings}>
+                🔄 重置
+              </button>
+              <button className="settings-cancel-btn" onClick={() => setShowSettings(false)}>
+                ✖️ 取消
+              </button>
+            </div>
+            <p className="settings-hint">
+              当前: <code>{apiBase}</code>
+            </p>
+          </div>
+        )}
 
         <div className="card">
           <div className="upload-section">
