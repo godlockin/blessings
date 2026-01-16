@@ -6,7 +6,6 @@ import { AIService } from '../../lib/services/ai'
 import { Buffer } from 'node:buffer'
 
 export type Bindings = {
-    DB: D1Database
     GEMINI_API_KEY: string
     OSS_ACCESS_KEY_ID: string
     OSS_ACCESS_KEY_SECRET: string
@@ -15,6 +14,29 @@ export type Bindings = {
     OSS_ENDPOINT: string
     OSS_PREFIX?: string
     INVITE_CODE?: string
+}
+
+// In-memory task storage
+interface Task {
+    id: string
+    session_id: string
+    status: string
+    original_image_path: string
+    generated_image_path?: string
+    analysis_result?: string
+    created_at: number
+}
+
+const tasks = new Map<string, Task>()
+
+// Clean up old tasks (older than 1 hour)
+function cleanupOldTasks() {
+    const oneHourAgo = Date.now() - 60 * 60 * 1000
+    for (const [id, task] of tasks) {
+        if (task.created_at < oneHourAgo) {
+            tasks.delete(id)
+        }
+    }
 }
 
 const app = new Hono<{ Bindings: Bindings }>().basePath('/api')
@@ -27,6 +49,8 @@ app.get('/', (c) => {
 
 app.post('/upload', async (c) => {
     try {
+        cleanupOldTasks()
+
         const body = await c.req.parseBody()
         const image = body['image']
         const inviteCode = body['invite_code'] as string | undefined
@@ -43,7 +67,6 @@ app.post('/upload', async (c) => {
 
         const sessionId = uuidv4()
         const taskId = uuidv4()
-        const userId = 'anonymous'
 
         const oss = new OSSService(c.env)
         const imageBuffer = await image.arrayBuffer()
@@ -55,19 +78,20 @@ app.post('/upload', async (c) => {
         const prefix = c.env.OSS_PREFIX ? c.env.OSS_PREFIX.replace(/\/+$/, '') + '/' : ''
         const imagePath = `${prefix}sessions/${sessionDir}/original.jpg`
 
-        try {
-            await c.env.DB.prepare(
-                `INSERT INTO tasks (id, session_id, user_id, original_image_path, status) VALUES (?, ?, ?, ?, 'PENDING')`
-            ).bind(taskId, sessionId, userId, imagePath).run()
-        } catch (e) {
-            console.error("DB Error:", e)
-            return c.json({ error: 'Failed to create task in DB' }, 500)
+        // Create task in memory
+        const task: Task = {
+            id: taskId,
+            session_id: sessionId,
+            status: 'PENDING',
+            original_image_path: imagePath,
+            created_at: Date.now()
         }
+        tasks.set(taskId, task)
 
         c.executionCtx.waitUntil((async () => {
             try {
                 await oss.putObject(imagePath, imageBuffer, image.type)
-                await c.env.DB.prepare(`UPDATE tasks SET status = 'ANALYZING' WHERE id = ?`).bind(taskId).run()
+                task.status = 'ANALYZING'
 
                 const ai = new AIService(c.env)
                 const analysisResult = await ai.analyzeImage(imageBuffer, image.type)
@@ -80,16 +104,16 @@ app.post('/upload', async (c) => {
                     console.error("Failed to parse analysis result", e)
                 }
 
-                await c.env.DB.prepare(`UPDATE tasks SET analysis_result = ? WHERE id = ?`).bind(JSON.stringify(analysisJson), taskId).run()
+                task.analysis_result = JSON.stringify(analysisJson)
 
                 if (analysisJson.is_feasible === false) {
                     const failureReason = analysisJson.description || analysisJson.issues?.join(', ') || 'Image analysis failed'
-                    await c.env.DB.prepare(`UPDATE tasks SET status = 'FAILED', analysis_result = ? WHERE id = ?`)
-                        .bind(JSON.stringify({ error: failureReason }), taskId).run()
+                    task.status = 'FAILED'
+                    task.analysis_result = JSON.stringify({ error: failureReason })
                     return
                 }
 
-                await c.env.DB.prepare(`UPDATE tasks SET status = 'GENERATING' WHERE id = ?`).bind(taskId).run()
+                task.status = 'GENERATING'
 
                 const faceDesc = analysisJson.face_description || 'A person with natural features'
                 const hairDesc = analysisJson.hair_description || 'natural hair'
@@ -147,8 +171,8 @@ CRITICAL:
                             last_review: review || null,
                             last_status: status
                         }
-                        await c.env.DB.prepare(`UPDATE tasks SET status = ?, analysis_result = ? WHERE id = ?`)
-                            .bind(statusText, JSON.stringify(progressData), taskId).run()
+                        task.status = statusText
+                        task.analysis_result = JSON.stringify(progressData)
                     }
                 )
 
@@ -159,14 +183,15 @@ CRITICAL:
 
                 await oss.putObject(generatedPath, generatedImageBuffer, 'image/jpeg')
 
-                await c.env.DB.prepare(`UPDATE tasks SET status = 'COMPLETED', generated_image_path = ?, analysis_result = ? WHERE id = ?`)
-                    .bind(generatedPath, JSON.stringify({ ...analysisJson, expert_review: finalReview, generation_attempts: attempts }), taskId).run()
+                task.status = 'COMPLETED'
+                task.generated_image_path = generatedPath
+                task.analysis_result = JSON.stringify({ ...analysisJson, expert_review: finalReview, generation_attempts: attempts })
 
             } catch (error: any) {
                 console.error('Task processing failed:', error)
                 const errorMessage = error instanceof Error ? error.message : String(error)
-                await c.env.DB.prepare(`UPDATE tasks SET status = 'FAILED', analysis_result = ? WHERE id = ?`)
-                    .bind(JSON.stringify({ error: errorMessage }), taskId).run()
+                task.status = 'FAILED'
+                task.analysis_result = JSON.stringify({ error: errorMessage })
             }
         })())
 
@@ -182,7 +207,7 @@ CRITICAL:
 
 app.get('/status/:taskId', async (c) => {
     const taskId = c.req.param('taskId')
-    const task = await c.env.DB.prepare(`SELECT * FROM tasks WHERE id = ?`).bind(taskId).first()
+    const task = tasks.get(taskId)
 
     if (!task) {
         return c.json({ error: 'Task not found' }, 404)
@@ -193,7 +218,7 @@ app.get('/status/:taskId', async (c) => {
 
 app.get('/result/:taskId', async (c) => {
     const taskId = c.req.param('taskId')
-    const task = await c.env.DB.prepare(`SELECT * FROM tasks WHERE id = ?`).bind(taskId).first()
+    const task = tasks.get(taskId)
 
     if (!task) {
         return c.json({ error: 'Task not found' }, 404)
@@ -209,17 +234,17 @@ app.get('/result/:taskId', async (c) => {
     const generatedBase64 = Buffer.from(generatedBuffer).toString('base64')
     const url = `data:image/jpeg;base64,${generatedBase64}`
 
-    const originalBuffer = await oss.getObject(task.original_image_path as string)
+    const originalBuffer = await oss.getObject(task.original_image_path)
     const originalBase64 = Buffer.from(originalBuffer).toString('base64')
     const originalUrl = `data:image/jpeg;base64,${originalBase64}`
 
     let analysisJson: any = {}
     try {
         if (task.analysis_result) {
-            analysisJson = JSON.parse(task.analysis_result as string)
+            analysisJson = JSON.parse(task.analysis_result)
         }
     } catch (e) {
-        console.error("Failed to parse analysis result from DB", e)
+        console.error("Failed to parse analysis result", e)
     }
 
     const prompt = `
