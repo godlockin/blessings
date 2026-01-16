@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { v4 as uuidv4 } from 'uuid'
 import { OSSService } from '../lib/services/oss'
 import { AIService } from '../lib/services/ai'
 import { Buffer } from 'node:buffer'
@@ -65,8 +64,8 @@ app.post('/upload', async (c) => {
             return c.json({ error: 'Image file is required' }, 400)
         }
 
-        const sessionId = uuidv4()
-        const taskId = uuidv4()
+        const sessionId = crypto.randomUUID()
+        const taskId = crypto.randomUUID()
 
         const oss = new OSSService(c.env)
         const imageBuffer = await image.arrayBuffer()
