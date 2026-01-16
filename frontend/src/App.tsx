@@ -4,8 +4,7 @@ import './App.css'
 function App() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [taskId, setTaskId] = useState<string | null>(null)
+  const [, setTaskId] = useState<string | null>(null)
   const [status, setStatus] = useState<string>('IDLE')
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [originalUrl, setOriginalUrl] = useState<string | null>(null)
