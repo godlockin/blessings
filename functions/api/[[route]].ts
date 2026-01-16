@@ -42,7 +42,21 @@ const app = new Hono<{ Bindings: Bindings }>().basePath('/api')
 
 app.use('/*', cors())
 
+app.onError((err, c) => {
+    console.error(`[Global Error] ${err.name}: ${err.message}`, err.stack)
+    return c.json({
+        error: 'Internal Server Error',
+        message: err.message,
+        stack: c.env.GEMINI_API_KEY ? 'hidden' : err.stack // Hide stack in prod if desired, or show for debug
+    }, 500)
+})
+
+app.notFound((c) => {
+    return c.json({ error: 'Not Found', path: c.req.path }, 404)
+})
+
 app.get('/', (c) => {
+    console.log('Root endpoint accessed')
     return c.text('Blessings API is running!')
 })
 
