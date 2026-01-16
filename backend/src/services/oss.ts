@@ -27,6 +27,7 @@ export class OSSService {
       method: 'PUT',
       headers: {
         'Content-Type': contentType,
+        'x-amz-content-sha256': 'UNSIGNED-PAYLOAD', // Required for OSS S3 compatibility
       },
       body: data,
     })
@@ -48,5 +49,30 @@ export class OSSService {
      })
      
      return signed.url
+  }
+
+  async getObject(key: string): Promise<ArrayBuffer> {
+    const host = `${this.bucket}.${this.endpoint}`.replace('https://', '')
+    const url = `https://${host}/${key}`
+
+    // OSS might require signing for GET requests if the bucket is private
+     // Using aws4fetch to sign the GET request
+     const signed = await this.client.sign(url, {
+         method: 'GET',
+         headers: {
+            'x-amz-content-sha256': 'UNSIGNED-PAYLOAD'
+         }
+     })
+ 
+     const response = await fetch(signed.url, {
+         method: signed.method,
+         headers: signed.headers
+     })
+
+    if (!response.ok) {
+        throw new Error(`Failed to get object from OSS: ${response.status}`)
+    }
+
+    return await response.arrayBuffer()
   }
 }
