@@ -52,9 +52,15 @@ app.post('/api/upload', async (c) => {
         // Convert File to ArrayBuffer
         const imageBuffer = await image.arrayBuffer()
 
+        // Create a timestamped session directory for easier debugging
+        // Format: YYYYMMDD_HHMMSS_uuid
+        const now = new Date()
+        const timeStr = now.toISOString().replace(/[-:T]/g, '').slice(0, 14) // YYYYMMDDHHMMSS
+        const sessionDir = `${timeStr}_${sessionId}`
+
         // Construct OSS Path with Prefix
         const prefix = c.env.OSS_PREFIX ? c.env.OSS_PREFIX.replace(/\/+$/, '') + '/' : ''
-        const imagePath = `${prefix}sessions/${sessionId}/original.jpg`
+        const imagePath = `${prefix}sessions/${sessionDir}/original.jpg`
 
         // Create Task in DB
         try {
@@ -162,7 +168,8 @@ CRITICAL:
 
                 // Append timestamp to filename to avoid overwriting and provide unique ID effect if needed
                 const timestamp = Date.now()
-                const generatedPath = `${prefix}sessions/${sessionId}/generated_${timestamp}.jpg`
+                // Use the same sessionDir for generated images
+                const generatedPath = `${prefix}sessions/${sessionDir}/generated_${timestamp}.jpg`
 
                 // 6. Upload Generated Image
                 await oss.putObject(generatedPath, generatedImageBuffer, 'image/jpeg')

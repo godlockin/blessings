@@ -236,7 +236,7 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
     prompt: string,
     originalImageBuffer: ArrayBuffer,
     maxRetries: number = 3,
-    onStatusUpdate?: (status: string, attempt: number, review?: ReviewResult) => void
+    onStatusUpdate?: (status: string, attempt: number, review?: ReviewResult) => Promise<void>
   ): Promise<{ imageBuffer: ArrayBuffer; finalReview: ReviewResult; attempts: number }> {
     let lastGeneratedBuffer: ArrayBuffer | null = null
     let lastReview: ReviewResult | null = null
@@ -245,7 +245,7 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
       console.log(`Generation attempt ${attempt}/${maxRetries}`)
 
       if (onStatusUpdate) {
-        onStatusUpdate('GENERATING', attempt)
+        await onStatusUpdate('GENERATING', attempt)
       }
 
       // Generate image with original as reference for face preservation
@@ -253,7 +253,7 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
       lastGeneratedBuffer = generatedBuffer
 
       if (onStatusUpdate) {
-        onStatusUpdate('REVIEWING', attempt)
+        await onStatusUpdate('REVIEWING', attempt)
       }
 
       // Expert review
@@ -276,7 +276,7 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
       console.log(`Suggestions for improvement:`, review.suggestions)
 
       if (onStatusUpdate) {
-        onStatusUpdate('REGENERATING', attempt, review)
+        await onStatusUpdate('REGENERATING', attempt, review)
       }
     }
 

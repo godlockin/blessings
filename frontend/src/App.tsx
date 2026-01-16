@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 
-// Default API base URL - configurable via environment variable or manual setting
 // Priority: VITE_BACKEND_URL > VITE_API_BASE > Default to /api via proxy or direct
-const DEFAULT_API_BASE = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE || '/api'
 
 function App() {
   const [file, setFile] = useState<File | null>(null)
@@ -15,27 +13,10 @@ function App() {
   const [originalUrl, setOriginalUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Settings state
-  const [showSettings, setShowSettings] = useState(false)
-  const [apiBase, setApiBase] = useState<string>(() => {
-    return localStorage.getItem('blessings_api_base') || DEFAULT_API_BASE
-  })
-  const [tempApiBase, setTempApiBase] = useState<string>(apiBase)
-
-  // Save API base to localStorage when changed
-  const handleSaveSettings = () => {
-    const trimmedUrl = tempApiBase.trim().replace(/\/$/, '') // Remove trailing slash
-    setApiBase(trimmedUrl)
-    localStorage.setItem('blessings_api_base', trimmedUrl)
-    setShowSettings(false)
-  }
-
-  const handleResetSettings = () => {
-    setTempApiBase(DEFAULT_API_BASE)
-    setApiBase(DEFAULT_API_BASE)
-    localStorage.removeItem('blessings_api_base')
-    setShowSettings(false)
-  }
+  // Settings state (Internal or hidden now, prioritizing env vars)
+  // We keep internal state for API base but remove manual UI as requested
+  // Priority: VITE_BACKEND_URL > VITE_API_BASE > Default to /api
+  const apiBase = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE || '/api'
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -158,6 +139,21 @@ function App() {
       'COMPLETED': '🎉 Complete!',
       'FAILED': '❌ Failed'
     }
+
+    // Handle attempt statuses (e.g., GENERATING_ATTEMPT_2)
+    if (status.startsWith('GENERATING_ATTEMPT_')) {
+      const attempt = status.split('_').pop()
+      return `✨ Creating your blessing (Attempt ${attempt})...`
+    }
+    if (status.startsWith('REVIEWING_ATTEMPT_')) {
+      const attempt = status.split('_').pop()
+      return `🧐 Expert Reviewing (Attempt ${attempt})...`
+    }
+    if (status.startsWith('REGENERATING_ATTEMPT_')) {
+      const attempt = status.split('_').pop()
+      return `🔄 Optimizing details (Attempt ${attempt})...`
+    }
+
     return statusMap[status] || status
   }
 
@@ -172,49 +168,6 @@ function App() {
       <div className="container">
         <h1>🧧 新年祝福生成器</h1>
         <p className="subtitle">Upload your photo and create a festive Chinese New Year blessing</p>
-
-        {/* Settings Button */}
-        <button
-          className="settings-btn"
-          onClick={() => { setTempApiBase(apiBase); setShowSettings(!showSettings); }}
-          title="Settings"
-        >
-          ⚙️
-        </button>
-
-        {/* Settings Panel */}
-        {showSettings && (
-          <div className="settings-panel">
-            <h3>⚙️ 设置 / Settings</h3>
-            <div className="settings-item">
-              <label>后端地址 (API Base URL):</label>
-              <input
-                type="text"
-                className="settings-input"
-                value={tempApiBase}
-                onChange={(e) => setTempApiBase(e.target.value)}
-                placeholder="https://your-backend.workers.dev/api"
-              />
-            </div>
-            <div className="settings-buttons">
-              <button className="settings-save-btn" onClick={handleSaveSettings}>
-                💾 保存
-              </button>
-              <button className="settings-reset-btn" onClick={handleResetSettings}>
-                🔄 重置
-              </button>
-              <button className="settings-cancel-btn" onClick={() => setShowSettings(false)}>
-                ✖️ 取消
-              </button>
-            </div>
-            <p className="settings-hint">
-              当前: <code>{apiBase}</code>
-            </p>
-            <p className="settings-hint">
-              默认来源: {import.meta.env.VITE_BACKEND_URL ? 'Cloudflare/Env (VITE_BACKEND_URL)' : (import.meta.env.VITE_API_BASE ? 'Cloudflare/Env (VITE_API_BASE)' : 'Hardcoded Default')}
-            </p>
-          </div>
-        )}
 
         <div className="card">
           <div className="upload-section">
