@@ -2,3 +2,7 @@ name = "blessings"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
+
+[[kv_namespaces]]
+binding = "TASKS"
+id = "5d54a9bf8ac54edab13bacbdb8fbd94e"

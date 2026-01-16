@@ -14,9 +14,10 @@ export type Bindings = {
     OSS_ENDPOINT: string
     OSS_PREFIX?: string
     INVITE_CODE?: string
+    TASKS: KVNamespace
 }
 
-// In-memory task storage
+// Task interface stored in KV
 interface Task {
     id: string
     session_id: string
@@ -27,16 +28,15 @@ interface Task {
     created_at: number
 }
 
-const tasks = new Map<string, Task>()
+// Helper functions for KV operations
+async function getTask(kv: KVNamespace, taskId: string): Promise<Task | null> {
+    const data = await kv.get(taskId, 'json')
+    return data as Task | null
+}
 
-// Clean up old tasks (older than 1 hour)
-function cleanupOldTasks() {
-    const oneHourAgo = Date.now() - 60 * 60 * 1000
-    for (const [id, task] of tasks) {
-        if (task.created_at < oneHourAgo) {
-            tasks.delete(id)
-        }
-    }
+async function setTask(kv: KVNamespace, task: Task): Promise<void> {
+    // Store with 1 hour TTL
+    await kv.put(task.id, JSON.stringify(task), { expirationTtl: 3600 })
 }
 
 const app = new Hono<{ Bindings: Bindings }>().basePath('/api')
@@ -66,8 +66,6 @@ app.get('', (c) => {
 
 app.post('/upload', async (c) => {
     try {
-        cleanupOldTasks()
-
         const body = await c.req.parseBody()
         const image = body['image']
         const inviteCode = body['invite_code'] as string | undefined
@@ -97,28 +95,30 @@ app.post('/upload', async (c) => {
 
         await oss.putObject(imagePath, imageBuffer, image.type)
 
-        tasks.set(taskId, {
+        // Store task in KV
+        const task: Task = {
             id: taskId,
             session_id: sessionId,
             status: 'ANALYZING',
             original_image_path: imagePath,
             created_at: Date.now()
-        })
+        }
+        await setTask(c.env.TASKS, task)
 
         // Async processing
         c.executionCtx.waitUntil((async () => {
             try {
                 const ai = new AIService(c.env)
 
-                // Update status
-                const updateStatus = (status: string) => {
-                    const task = tasks.get(taskId)
-                    if (task) {
-                        tasks.set(taskId, { ...task, status })
+                // Update status helper
+                const updateStatus = async (status: string) => {
+                    const currentTask = await getTask(c.env.TASKS, taskId)
+                    if (currentTask) {
+                        await setTask(c.env.TASKS, { ...currentTask, status })
                     }
                 }
 
-                updateStatus('ANALYZING')
+                await updateStatus('ANALYZING')
 
                 // AI Analysis
                 const analysisResult = await ai.analyzeImage(imageBuffer, image.type)
@@ -139,7 +139,7 @@ app.post('/upload', async (c) => {
                     imageBuffer,
                     3,
                     async (status, attempt, review) => {
-                        updateStatus(`${status} (Attempt ${attempt}/3)`)
+                        await updateStatus(`${status} (Attempt ${attempt}/3)`)
                     }
                 )
 
@@ -148,10 +148,10 @@ app.post('/upload', async (c) => {
                 await oss.putObject(generatedPath, generatedImageBuffer, 'image/jpeg')
 
                 // Update to completed
-                const task = tasks.get(taskId)
-                if (task) {
-                    tasks.set(taskId, {
-                        ...task,
+                const completedTask = await getTask(c.env.TASKS, taskId)
+                if (completedTask) {
+                    await setTask(c.env.TASKS, {
+                        ...completedTask,
                         status: 'COMPLETED',
                         generated_image_path: generatedPath,
                         analysis_result: JSON.stringify({
@@ -163,9 +163,13 @@ app.post('/upload', async (c) => {
                 }
             } catch (error: any) {
                 console.error('Processing failed:', error)
-                const task = tasks.get(taskId)
-                if (task) {
-                    tasks.set(taskId, { ...task, status: 'FAILED', analysis_result: JSON.stringify({ error: error.message }) })
+                const failedTask = await getTask(c.env.TASKS, taskId)
+                if (failedTask) {
+                    await setTask(c.env.TASKS, {
+                        ...failedTask,
+                        status: 'FAILED',
+                        analysis_result: JSON.stringify({ error: error.message })
+                    })
                 }
             }
         })())
@@ -183,7 +187,7 @@ app.post('/upload', async (c) => {
 
 app.get('/status/:taskId', async (c) => {
     const taskId = c.req.param('taskId')
-    const task = tasks.get(taskId)
+    const task = await getTask(c.env.TASKS, taskId)
 
     if (!task) {
         return c.json({ error: 'Task not found' }, 404)
@@ -199,7 +203,7 @@ app.get('/status/:taskId', async (c) => {
 
 app.get('/result/:taskId', async (c) => {
     const taskId = c.req.param('taskId')
-    const task = tasks.get(taskId)
+    const task = await getTask(c.env.TASKS, taskId)
 
     if (!task) {
         return c.json({ error: 'Task not found' }, 404)
