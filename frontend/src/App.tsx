@@ -2,7 +2,8 @@ import { useState } from 'react'
 import './App.css'
 
 // Default API base URL - configurable via environment variable or manual setting
-const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE || '/api'
+// Priority: VITE_BACKEND_URL > VITE_API_BASE > Default to /api via proxy or direct
+const DEFAULT_API_BASE = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE || '/api'
 
 function App() {
   const [file, setFile] = useState<File | null>(null)
@@ -208,6 +209,9 @@ function App() {
             </div>
             <p className="settings-hint">
               当前: <code>{apiBase}</code>
+            </p>
+            <p className="settings-hint">
+              默认来源: {import.meta.env.VITE_BACKEND_URL ? 'Cloudflare/Env (VITE_BACKEND_URL)' : (import.meta.env.VITE_API_BASE ? 'Cloudflare/Env (VITE_API_BASE)' : 'Hardcoded Default')}
             </p>
           </div>
         )}
