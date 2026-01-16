@@ -12,11 +12,28 @@ function App() {
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [originalUrl, setOriginalUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [reviewDetails, setReviewDetails] = useState<{
+    current_attempt?: number;
+    max_attempts?: number;
+    last_review?: {
+      approved: boolean;
+      overall_score: number;
+      scores: {
+        face_match: number;
+        outfit: number;
+        pose: number;
+        full_body: number;
+        quality: number;
+        cultural: number;
+        realism: number;
+      };
+      issues: string[];
+      suggestions: string[];
+    };
+  } | null>(null)
 
-  // Settings state (Internal or hidden now, prioritizing env vars)
-  // We keep internal state for API base but remove manual UI as requested
-  // Priority: VITE_BACKEND_URL > VITE_API_BASE > Default to /api
-  const apiBase = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE || '/api'
+  // API base path - use relative path for single-app architecture
+  const apiBase = '/api'
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -82,8 +99,25 @@ function App() {
 
         setStatus(data.status)
 
+        // Parse and display progress details
+        if (data.analysis_result) {
+          try {
+            const analysisData = JSON.parse(data.analysis_result)
+            if (analysisData.current_attempt || analysisData.last_review) {
+              setReviewDetails({
+                current_attempt: analysisData.current_attempt,
+                max_attempts: analysisData.max_attempts || 3,
+                last_review: analysisData.last_review
+              })
+            }
+          } catch {
+            // Ignore parse errors
+          }
+        }
+
         if (data.status === 'COMPLETED') {
           clearInterval(interval)
+          setReviewDetails(null) // Clear review details on completion
           fetchResult(tid)
         } else if (data.status === 'FAILED') {
           clearInterval(interval)
@@ -157,7 +191,21 @@ function App() {
     return statusMap[status] || status
   }
 
-  const isProcessing = ['UPLOADING', 'PENDING', 'ANALYZING', 'GENERATING'].includes(status)
+
+
+
+  // Robust check for processing state (includes all ATTEMPT statuses)
+  // Only enable button if IDLE, COMPLETED, or FAILED
+  const isProcessing = !['IDLE', 'COMPLETED', 'FAILED'].includes(status)
+
+  const getCurrentStep = () => {
+    if (status === 'COMPLETED') return 4
+    if (status.startsWith('GENERATING') || status.startsWith('REVIEWING') || status.startsWith('REGENERATING')) return 3
+    if (status === 'ANALYZING') return 2
+    return 1 // IDLE, UPLOADING, PENDING
+  }
+
+  const currentStep = getCurrentStep()
 
   return (
     <>
@@ -168,6 +216,24 @@ function App() {
       <div className="container">
         <h1>🧧 新年祝福生成器</h1>
         <p className="subtitle">Upload your photo and create a festive Chinese New Year blessing</p>
+
+        {/* Progress Stepper */}
+        <div className="stepper-container">
+          <div className={`step-item ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}>
+            <div className="step-circle">{currentStep > 1 ? '✓' : '1'}</div>
+            <span className="step-label">上传 Upload</span>
+          </div>
+          <div className={`step-line ${currentStep >= 2 ? 'active' : ''}`}></div>
+          <div className={`step-item ${currentStep >= 2 ? 'active' : ''} ${currentStep > 2 ? 'completed' : ''}`}>
+            <div className="step-circle">{currentStep > 2 ? '✓' : '2'}</div>
+            <span className="step-label">分析 Analysis</span>
+          </div>
+          <div className={`step-line ${currentStep >= 3 ? 'active' : ''}`}></div>
+          <div className={`step-item ${currentStep >= 3 ? 'active' : ''} ${currentStep > 3 ? 'completed' : ''}`}>
+            <div className="step-circle">{currentStep > 3 ? '✓' : '3'}</div>
+            <span className="step-label">生成 Creation</span>
+          </div>
+        </div>
 
         <div className="card">
           <div className="upload-section">
@@ -226,11 +292,66 @@ function App() {
           {/* Status Section */}
           <div className="status-section">
             {status !== 'IDLE' && (
-              <p className={`status-text ${getStatusClass()}`}>
-                {isProcessing && <span className="spinner"></span>}
-                {getStatusText()}
-              </p>
+              <>
+                <p className={`status-text ${getStatusClass()}`}>
+                  {isProcessing && <span className="spinner"></span>}
+                  {getStatusText()}
+                </p>
+
+                {/* Attempt Progress */}
+                {reviewDetails?.current_attempt && isProcessing && (
+                  <p className="attempt-progress">
+                    尝试次数: {reviewDetails.current_attempt} / {reviewDetails.max_attempts || 3}
+                  </p>
+                )}
+              </>
             )}
+
+            {/* Expert Review Feedback */}
+            {reviewDetails?.last_review && isProcessing && (
+              <div className="review-feedback">
+                <div className="review-header">
+                  <span className="review-icon">⚠️</span>
+                  <span>上一次生成未通过专家评审</span>
+                </div>
+
+                <div className="review-scores">
+                  <div className="overall-score">
+                    综合评分: <strong>{reviewDetails.last_review.overall_score.toFixed(1)}</strong>/10
+                  </div>
+                  <div className="score-grid">
+                    {Object.entries({
+                      '人脸匹配': reviewDetails.last_review.scores.face_match,
+                      '服装': reviewDetails.last_review.scores.outfit,
+                      '姿势': reviewDetails.last_review.scores.pose,
+                      '全身': reviewDetails.last_review.scores.full_body,
+                      '质量': reviewDetails.last_review.scores.quality,
+                      '文化': reviewDetails.last_review.scores.cultural,
+                      '写实度': reviewDetails.last_review.scores.realism
+                    }).map(([label, score]) => (
+                      <div key={label} className={`score-item ${score < 7 ? 'low-score' : ''}`}>
+                        <span className="score-label">{label}</span>
+                        <span className="score-value">{score}/10</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {reviewDetails.last_review.issues.length > 0 && (
+                  <div className="review-issues">
+                    <p className="issues-title">发现的问题:</p>
+                    <ul>
+                      {reviewDetails.last_review.issues.map((issue, i) => (
+                        <li key={i}>{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <p className="review-tip">💡 系统正在根据反馈优化生成...</p>
+              </div>
+            )}
+
             {error && <p className="error">⚠️ {error}</p>}
           </div>
 

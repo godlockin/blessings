@@ -1,6 +1,16 @@
 import { AwsClient } from 'aws4fetch'
-import { Bindings } from '../index'
 
+export type Bindings = {
+  DB: D1Database
+  GEMINI_API_KEY: string
+  OSS_ACCESS_KEY_ID: string
+  OSS_ACCESS_KEY_SECRET: string
+  OSS_BUCKET: string
+  OSS_REGION: string
+  OSS_ENDPOINT: string
+  OSS_PREFIX?: string
+  INVITE_CODE?: string
+}
 export class OSSService {
   private client: AwsClient
   private bucket: string
@@ -40,15 +50,15 @@ export class OSSService {
   }
 
   async getSignedUrl(key: string, method: 'GET' | 'PUT' = 'GET', expiresIn: number = 3600) {
-     const host = `${this.bucket}.${this.endpoint}`.replace('https://', '')
-     const url = `https://${host}/${key}`
-     
-     const signed = await this.client.sign(url, {
-         method: method,
-         aws: { signQuery: true }, 
-     })
-     
-     return signed.url
+    const host = `${this.bucket}.${this.endpoint}`.replace('https://', '')
+    const url = `https://${host}/${key}`
+
+    const signed = await this.client.sign(url, {
+      method: method,
+      aws: { signQuery: true },
+    })
+
+    return signed.url
   }
 
   async getObject(key: string): Promise<ArrayBuffer> {
@@ -56,21 +66,21 @@ export class OSSService {
     const url = `https://${host}/${key}`
 
     // OSS might require signing for GET requests if the bucket is private
-     // Using aws4fetch to sign the GET request
-     const signed = await this.client.sign(url, {
-         method: 'GET',
-         headers: {
-            'x-amz-content-sha256': 'UNSIGNED-PAYLOAD'
-         }
-     })
- 
-     const response = await fetch(signed.url, {
-         method: signed.method,
-         headers: signed.headers
-     })
+    // Using aws4fetch to sign the GET request
+    const signed = await this.client.sign(url, {
+      method: 'GET',
+      headers: {
+        'x-amz-content-sha256': 'UNSIGNED-PAYLOAD'
+      }
+    })
+
+    const response = await fetch(signed.url, {
+      method: signed.method,
+      headers: signed.headers
+    })
 
     if (!response.ok) {
-        throw new Error(`Failed to get object from OSS: ${response.status}`)
+      throw new Error(`Failed to get object from OSS: ${response.status}`)
     }
 
     return await response.arrayBuffer()

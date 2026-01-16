@@ -1,7 +1,18 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { Bindings } from '../index'
 import { EXPERT_SYSTEM_PROMPT, EXPERT_REVIEW_PROMPT } from '../prompts'
 import { Buffer } from 'node:buffer'
+
+export type Bindings = {
+  DB: D1Database
+  GEMINI_API_KEY: string
+  OSS_ACCESS_KEY_ID: string
+  OSS_ACCESS_KEY_SECRET: string
+  OSS_BUCKET: string
+  OSS_REGION: string
+  OSS_ENDPOINT: string
+  OSS_PREFIX?: string
+  INVITE_CODE?: string
+}
 
 export interface ReviewResult {
   approved: boolean

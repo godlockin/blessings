@@ -250,6 +250,113 @@
   margin-top: 1rem;
 }
 
+/* Attempt Progress */
+.attempt-progress {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+/* Review Feedback Card */
+.review-feedback {
+  background: rgba(255, 193, 7, 0.08);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+  text-align: left;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #FCD34D;
+  margin-bottom: 1rem;
+}
+
+.review-icon {
+  font-size: 1.2rem;
+}
+
+.review-scores {
+  margin-bottom: 1rem;
+}
+
+.overall-score {
+  font-size: 1rem;
+  color: var(--cny-cream);
+  margin-bottom: 0.75rem;
+}
+
+.overall-score strong {
+  color: var(--cny-gold);
+  font-size: 1.2rem;
+}
+
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+}
+
+.score-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0.6rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.score-label {
+  color: var(--text-secondary);
+}
+
+.score-value {
+  color: #34D399;
+  font-weight: 600;
+}
+
+.score-item.low-score .score-value {
+  color: #F87171;
+}
+
+.score-item.low-score {
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.review-issues {
+  margin-bottom: 1rem;
+}
+
+.issues-title {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.review-issues ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.review-issues li {
+  color: #FCA5A5;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.review-tip {
+  color: #60A5FA;
+  font-size: 0.9rem;
+  font-style: italic;
+  margin: 0;
+}
+
 /* Result Section */
 .result-section {
   margin-top: 2rem;
@@ -351,4 +458,92 @@
   50% {
     transform: rotate(5deg);
   }
+}
+
+/* Stepper */
+.stepper-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 10;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+/* Active Step */
+.step-item.active .step-circle {
+  background: var(--cny-red);
+  border-color: var(--cny-gold);
+  color: var(--cny-gold);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+.step-item.active .step-label {
+  color: var(--cny-gold);
+}
+
+/* Completed Step */
+.step-item.completed .step-circle {
+  background: var(--cny-gold);
+  border-color: var(--cny-gold);
+  color: var(--cny-red);
+}
+
+/* Connector Line */
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 10px 24px 10px;
+  /* Adjust for label height */
+  transition: all 0.3s ease;
+}
+
+.step-line.active {
+  background: linear-gradient(90deg, var(--cny-red) 0%, var(--cny-gold) 100%);
+  box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+}
+
+/* Explicit Disabled Button Style */
+.generate-btn:disabled {
+  background: #4B5563;
+  /* Gray-600 */
+  border-color: #6B7280;
+  color: #9CA3AF;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 0.7;
 }

@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { v4 as uuidv4 } from 'uuid'
-import { OSSService } from './services/oss'
-import { AIService } from './services/ai'
+import { OSSService } from '../../lib/services/oss'
+import { AIService } from '../../lib/services/ai'
+import { Buffer } from 'node:buffer'
 
 export type Bindings = {
     DB: D1Database
@@ -13,12 +14,10 @@ export type Bindings = {
     OSS_REGION: string
     OSS_ENDPOINT: string
     OSS_PREFIX?: string
-    INVITE_CODE?: string  // Optional invite code for access control
+    INVITE_CODE?: string
 }
 
-import { Buffer } from 'node:buffer'
-
-const app = new Hono<{ Bindings: Bindings }>()
+const app = new Hono<{ Bindings: Bindings }>().basePath('/api')
 
 app.use('/*', cors())
 
@@ -26,13 +25,12 @@ app.get('/', (c) => {
     return c.text('Blessings API is running!')
 })
 
-app.post('/api/upload', async (c) => {
+app.post('/upload', async (c) => {
     try {
         const body = await c.req.parseBody()
         const image = body['image']
         const inviteCode = body['invite_code'] as string | undefined
 
-        // Validate invite code if configured
         if (c.env.INVITE_CODE) {
             if (!inviteCode || inviteCode !== c.env.INVITE_CODE) {
                 return c.json({ error: 'Invalid or missing invite code' }, 403)
@@ -45,24 +43,18 @@ app.post('/api/upload', async (c) => {
 
         const sessionId = uuidv4()
         const taskId = uuidv4()
-        const userId = 'anonymous' // Or from auth
+        const userId = 'anonymous'
 
         const oss = new OSSService(c.env)
-
-        // Convert File to ArrayBuffer
         const imageBuffer = await image.arrayBuffer()
 
-        // Create a timestamped session directory for easier debugging
-        // Format: YYYYMMDD_HHMMSS_uuid
         const now = new Date()
-        const timeStr = now.toISOString().replace(/[-:T]/g, '').slice(0, 14) // YYYYMMDDHHMMSS
+        const timeStr = now.toISOString().replace(/[-:T]/g, '').slice(0, 14)
         const sessionDir = `${timeStr}_${sessionId}`
 
-        // Construct OSS Path with Prefix
         const prefix = c.env.OSS_PREFIX ? c.env.OSS_PREFIX.replace(/\/+$/, '') + '/' : ''
         const imagePath = `${prefix}sessions/${sessionDir}/original.jpg`
 
-        // Create Task in DB
         try {
             await c.env.DB.prepare(
                 `INSERT INTO tasks (id, session_id, user_id, original_image_path, status) VALUES (?, ?, ?, ?, 'PENDING')`
@@ -72,23 +64,16 @@ app.post('/api/upload', async (c) => {
             return c.json({ error: 'Failed to create task in DB' }, 500)
         }
 
-        // Async processing
         c.executionCtx.waitUntil((async () => {
             try {
-                // 1. Upload Original Image
                 await oss.putObject(imagePath, imageBuffer, image.type)
-
-                // 2. Update Status to ANALYZING
                 await c.env.DB.prepare(`UPDATE tasks SET status = 'ANALYZING' WHERE id = ?`).bind(taskId).run()
 
-                // 3. AI Analysis
                 const ai = new AIService(c.env)
                 const analysisResult = await ai.analyzeImage(imageBuffer, image.type)
 
-                // Check if feasible (parsing JSON from analysisResult)
                 let analysisJson: any = {}
                 try {
-                    // Basic cleanup of code blocks if Gemini returns markdown
                     const jsonStr = analysisResult.replace(/```json/g, '').replace(/```/g, '').trim()
                     analysisJson = JSON.parse(jsonStr)
                 } catch (e) {
@@ -98,18 +83,14 @@ app.post('/api/upload', async (c) => {
                 await c.env.DB.prepare(`UPDATE tasks SET analysis_result = ? WHERE id = ?`).bind(JSON.stringify(analysisJson), taskId).run()
 
                 if (analysisJson.is_feasible === false) {
-                    // Return detailed reason for failure
                     const failureReason = analysisJson.description || analysisJson.issues?.join(', ') || 'Image analysis failed'
                     await c.env.DB.prepare(`UPDATE tasks SET status = 'FAILED', analysis_result = ? WHERE id = ?`)
                         .bind(JSON.stringify({ error: failureReason }), taskId).run()
                     return
                 }
 
-                // 4. Update Status to GENERATING
                 await c.env.DB.prepare(`UPDATE tasks SET status = 'GENERATING' WHERE id = ?`).bind(taskId).run()
 
-                // 5. Generate Full Body Blessing Photo with Expert Review Loop
-                // Construct Prompt based on facial analysis only (no clothing)
                 const faceDesc = analysisJson.face_description || 'A person with natural features'
                 const hairDesc = analysisJson.hair_description || 'natural hair'
                 const prompt = `
@@ -148,33 +129,36 @@ CRITICAL:
 - The blessing pose must look natural and joyful
             `
 
-                // Generate with expert review loop (max 3 attempts)
                 const { imageBuffer: generatedImageBuffer, finalReview, attempts } = await ai.generateWithReview(
                     prompt,
                     imageBuffer,
                     3,
                     async (status, attempt, review) => {
-                        // Update status in DB for each stage
                         const statusText = status === 'REVIEWING'
                             ? `REVIEWING_ATTEMPT_${attempt}`
                             : status === 'REGENERATING'
                                 ? `REGENERATING_ATTEMPT_${attempt}`
                                 : `GENERATING_ATTEMPT_${attempt}`
-                        await c.env.DB.prepare(`UPDATE tasks SET status = ? WHERE id = ?`).bind(statusText, taskId).run()
+
+                        const progressData = {
+                            ...analysisJson,
+                            current_attempt: attempt,
+                            max_attempts: 3,
+                            last_review: review || null,
+                            last_status: status
+                        }
+                        await c.env.DB.prepare(`UPDATE tasks SET status = ?, analysis_result = ? WHERE id = ?`)
+                            .bind(statusText, JSON.stringify(progressData), taskId).run()
                     }
                 )
 
                 console.log(`Image generation completed after ${attempts} attempt(s). Approved: ${finalReview.approved}, Score: ${finalReview.overall_score}`)
 
-                // Append timestamp to filename to avoid overwriting and provide unique ID effect if needed
                 const timestamp = Date.now()
-                // Use the same sessionDir for generated images
                 const generatedPath = `${prefix}sessions/${sessionDir}/generated_${timestamp}.jpg`
 
-                // 6. Upload Generated Image
                 await oss.putObject(generatedPath, generatedImageBuffer, 'image/jpeg')
 
-                // 7. Update Status to COMPLETED with review results
                 await c.env.DB.prepare(`UPDATE tasks SET status = 'COMPLETED', generated_image_path = ?, analysis_result = ? WHERE id = ?`)
                     .bind(generatedPath, JSON.stringify({ ...analysisJson, expert_review: finalReview, generation_attempts: attempts }), taskId).run()
 
@@ -196,7 +180,7 @@ CRITICAL:
     }
 })
 
-app.get('/api/status/:taskId', async (c) => {
+app.get('/status/:taskId', async (c) => {
     const taskId = c.req.param('taskId')
     const task = await c.env.DB.prepare(`SELECT * FROM tasks WHERE id = ?`).bind(taskId).first()
 
@@ -207,7 +191,7 @@ app.get('/api/status/:taskId', async (c) => {
     return c.json(task)
 })
 
-app.get('/api/result/:taskId', async (c) => {
+app.get('/result/:taskId', async (c) => {
     const taskId = c.req.param('taskId')
     const task = await c.env.DB.prepare(`SELECT * FROM tasks WHERE id = ?`).bind(taskId).first()
 
@@ -221,7 +205,6 @@ app.get('/api/result/:taskId', async (c) => {
 
     const oss = new OSSService(c.env)
 
-    // Fetch image data and convert to Base64
     const generatedBuffer = await oss.getObject(task.generated_image_path as string)
     const generatedBase64 = Buffer.from(generatedBuffer).toString('base64')
     const url = `data:image/jpeg;base64,${generatedBase64}`
@@ -230,7 +213,6 @@ app.get('/api/result/:taskId', async (c) => {
     const originalBase64 = Buffer.from(originalBuffer).toString('base64')
     const originalUrl = `data:image/jpeg;base64,${originalBase64}`
 
-    // Parse analysis result to return prompt
     let analysisJson: any = {}
     try {
         if (task.analysis_result) {
@@ -264,4 +246,4 @@ STYLE: Full body portrait, ${analysisJson.style_tags?.join(', ') || 'Festive, Re
     })
 })
 
-export default app
+export const onRequest = app.fetch
