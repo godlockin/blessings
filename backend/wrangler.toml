@@ -13,6 +13,7 @@ account_id = "700ed004abf3810985c88d2c1bfa8733"
 # OSS_REGION = ""
 # OSS_ENDPOINT = ""
 # OSS_PREFIX = "" # Optional: e.g. "test/my_folder/"
+# INVITE_CODE = "" # Optional: Access control invite code
 
 [[d1_databases]]
 binding = "DB"

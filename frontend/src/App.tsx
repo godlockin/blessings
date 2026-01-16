@@ -4,6 +4,7 @@ import './App.css'
 function App() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const [inviteCode, setInviteCode] = useState<string>('')
   const [, setTaskId] = useState<string | null>(null)
   const [status, setStatus] = useState<string>('IDLE')
   const [resultUrl, setResultUrl] = useState<string | null>(null)
@@ -29,6 +30,9 @@ function App() {
 
     const formData = new FormData()
     formData.append('image', file)
+    if (inviteCode) {
+      formData.append('invite_code', inviteCode)
+    }
 
     try {
       const res = await fetch('/api/upload', {
@@ -166,6 +170,18 @@ function App() {
                   <img src={preview} alt="Preview" className="preview-img" />
                 </div>
               )}
+            </div>
+
+            {/* Invite Code Input */}
+            <div className="invite-code-section">
+              <input
+                type="text"
+                className="invite-code-input"
+                placeholder="Enter invite code (邀请码)"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                disabled={isProcessing}
+              />
             </div>
 
             {/* Generate Button */}

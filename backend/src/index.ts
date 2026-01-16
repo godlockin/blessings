@@ -13,6 +13,7 @@ export type Bindings = {
     OSS_REGION: string
     OSS_ENDPOINT: string
     OSS_PREFIX?: string
+    INVITE_CODE?: string  // Optional invite code for access control
 }
 
 import { Buffer } from 'node:buffer'
@@ -29,7 +30,14 @@ app.post('/api/upload', async (c) => {
     try {
         const body = await c.req.parseBody()
         const image = body['image']
-        // const refObject = body['ref_object'] // Optional
+        const inviteCode = body['invite_code'] as string | undefined
+
+        // Validate invite code if configured
+        if (c.env.INVITE_CODE) {
+            if (!inviteCode || inviteCode !== c.env.INVITE_CODE) {
+                return c.json({ error: 'Invalid or missing invite code' }, 403)
+            }
+        }
 
         if (!(image instanceof File)) {
             return c.json({ error: 'Image file is required' }, 400)
