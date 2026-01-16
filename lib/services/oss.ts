@@ -1,7 +1,6 @@
 import { AwsClient } from 'aws4fetch'
 
 export type Bindings = {
-  DB: D1Database
   GEMINI_API_KEY: string
   OSS_ACCESS_KEY_ID: string
   OSS_ACCESS_KEY_SECRET: string
