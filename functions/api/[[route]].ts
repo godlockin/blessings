@@ -147,11 +147,11 @@ app.post('/upload', async (c) => {
                 await updateStatus('GENERATING')
                 console.log('Starting image generation...')
 
-                // Generate with expert review
+                // Generate with expert review (reduced to 1 attempt for speed)
                 const { imageBuffer: generatedImageBuffer, finalReview, attempts } = await ai.generateWithReview(
                     prompt,
                     imageBuffer,
-                    3,
+                    1,  // Only 1 attempt to reduce processing time
                     async (status, attempt) => {
                         await updateStatus(`${status}_ATTEMPT_${attempt}`)
                     }
