@@ -282,12 +282,23 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
       }
 
       // Generate image with original as reference for face preservation
-      const generatedBuffer = await this.generateImage(prompt, originalImageBuffer)
+      let generatedBuffer: ArrayBuffer | null = null
+      try {
+        generatedBuffer = await this.generateImage(prompt, originalImageBuffer)
+        console.log(`generateImage returned: ${generatedBuffer ? `${generatedBuffer.byteLength} bytes` : 'null'}`)
+      } catch (genError: any) {
+        console.error(`generateImage threw error: ${genError?.message || genError}`)
+        throw new Error(`Image generation failed: ${genError?.message || 'Unknown error'}`)
+      }
 
       // Validate generated buffer
-      if (!generatedBuffer || generatedBuffer.byteLength === 0) {
-        console.error(`Generation attempt ${attempt} returned invalid buffer`)
-        throw new Error('Image generation returned empty or null buffer')
+      if (!generatedBuffer) {
+        console.error(`Generation attempt ${attempt} returned null buffer`)
+        throw new Error('Image generation returned null buffer')
+      }
+      if (generatedBuffer.byteLength === 0) {
+        console.error(`Generation attempt ${attempt} returned empty buffer`)
+        throw new Error('Image generation returned empty buffer (0 bytes)')
       }
 
       console.log(`Generated buffer size: ${generatedBuffer.byteLength} bytes`)
