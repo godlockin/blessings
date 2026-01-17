@@ -15,6 +15,9 @@ export type Bindings = {
     OSS_PREFIX?: string
     INVITE_CODE?: string
     TASKS: KVNamespace  // Cloudflare KV for persistent task storage
+    // AI Configuration
+    MAX_RETRIES?: string  // Max generation+review cycles (default: 1)
+    ENABLE_REVIEW?: string  // Enable expert review step (default: true)
 }
 
 // Task interface stored in KV
@@ -147,14 +150,19 @@ app.post('/upload', async (c) => {
                 await updateStatus('GENERATING')
                 console.log('Starting image generation...')
 
-                // Generate with expert review (reduced to 1 attempt for speed)
+                // Get configuration from environment
+                const maxRetries = parseInt(c.env.MAX_RETRIES || '1', 10)
+                const enableReview = c.env.ENABLE_REVIEW !== 'false'
+                console.log(`Config: maxRetries=${maxRetries}, enableReview=${enableReview}`)
+
+                // Generate with expert review
                 const { imageBuffer: generatedImageBuffer, finalReview, attempts } = await ai.generateWithReview(
                     prompt,
                     imageBuffer,
-                    1,  // Only 1 attempt to reduce processing time
-                    async (status, attempt) => {
+                    maxRetries,
+                    enableReview ? async (status, attempt) => {
                         await updateStatus(`${status}_ATTEMPT_${attempt}`)
-                    }
+                    } : undefined
                 )
                 console.log(`Generation complete after ${attempts} attempts`)
 
