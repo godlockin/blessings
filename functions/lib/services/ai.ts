@@ -62,9 +62,12 @@ export class AIService {
    * This preserves the person's face identity by using the original image as input
    */
   async generateImage(prompt: string, originalImageBuffer?: ArrayBuffer): Promise<ArrayBuffer> {
+    console.log('=== generateImage START ===')
+    console.log('originalImageBuffer size:', originalImageBuffer?.byteLength || 0)
     let lastError: Error | null = null;
 
     try {
+      console.log('Attempting Gemini image generation...')
       // Use Gemini for image generation with original image as reference
       const model = this.genAI.getGenerativeModel({
         model: 'gemini-3-pro-image-preview',
@@ -151,15 +154,20 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
     }
 
     // Try Pollinations.ai fallback
+    console.log('=== ENTERING POLLINATIONS FALLBACK ===')
+    console.log('lastError from Gemini:', lastError?.message)
     try {
-      console.log("Falling back to Pollinations.ai")
+      console.log("Calling generateImageFallback...")
       const fallbackBuffer = await this.generateImageFallback(prompt)
+      console.log('Fallback returned buffer:', fallbackBuffer ? `${fallbackBuffer.byteLength} bytes` : 'null')
       if (fallbackBuffer && fallbackBuffer.byteLength > 0) {
+        console.log('=== generateImage SUCCESS via Pollinations ===')
         return fallbackBuffer
       }
       throw new Error('Pollinations.ai returned empty buffer')
     } catch (fallbackError: any) {
       console.error("Pollinations.ai fallback also failed:", fallbackError?.message || fallbackError)
+      console.log('=== generateImage FAILED ===')
       throw new Error(`Image generation failed: Gemini: ${lastError?.message}, Pollinations: ${fallbackError?.message}`)
     }
   }
