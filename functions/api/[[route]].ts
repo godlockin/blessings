@@ -340,4 +340,33 @@ app.get('/debug/test-pollinations', async (c) => {
     }
 })
 
+// Debug endpoint - test full generateImage flow
+app.get('/debug/test-generate', async (c) => {
+    try {
+        const ai = new AIService(c.env.GEMINI_API_KEY)
+        const testPrompt = 'A simple portrait of a person wearing red Chinese clothes, festive background'
+
+        console.log('=== DEBUG TEST GENERATE START ===')
+        console.log('GEMINI_API_KEY length:', c.env.GEMINI_API_KEY?.length || 0)
+
+        const result = await ai.generateImage(testPrompt)
+
+        console.log('=== DEBUG TEST GENERATE END ===')
+        console.log('Result type:', typeof result)
+        console.log('Result byteLength:', result?.byteLength)
+
+        return c.json({
+            success: true,
+            bufferSize: result?.byteLength || 0
+        })
+    } catch (e: any) {
+        console.error('Test generate error:', e)
+        return c.json({
+            success: false,
+            error: e.message,
+            stack: e.stack
+        }, 500)
+    }
+})
+
 export const onRequest = handle(app)
