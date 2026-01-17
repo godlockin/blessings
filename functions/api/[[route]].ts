@@ -167,12 +167,16 @@ app.post('/upload', async (c) => {
                     skipReview
                 )
                 console.log(`Generation complete after ${attempts} attempts`)
-                console.log(`Generated image buffer size: ${generatedImageBuffer.byteLength} bytes`)
 
-                // Validate generated image
-                if (!generatedImageBuffer || generatedImageBuffer.byteLength === 0) {
-                    throw new Error('Generated image buffer is empty')
+                // Validate generated image first
+                if (!generatedImageBuffer) {
+                    throw new Error('Generated image buffer is null')
                 }
+                if (generatedImageBuffer.byteLength === 0) {
+                    throw new Error('Generated image buffer is empty (0 bytes)')
+                }
+
+                console.log(`Generated image buffer size: ${generatedImageBuffer.byteLength} bytes`)
 
                 // Upload generated image
                 const generatedPath = `${prefix}sessions/${sessionDir}/generated.jpg`
