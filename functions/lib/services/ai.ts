@@ -283,6 +283,14 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
 
       // Generate image with original as reference for face preservation
       const generatedBuffer = await this.generateImage(prompt, originalImageBuffer)
+
+      // Validate generated buffer
+      if (!generatedBuffer || generatedBuffer.byteLength === 0) {
+        console.error(`Generation attempt ${attempt} returned invalid buffer`)
+        throw new Error('Image generation returned empty or null buffer')
+      }
+
+      console.log(`Generated buffer size: ${generatedBuffer.byteLength} bytes`)
       lastGeneratedBuffer = generatedBuffer
 
       // Skip review if disabled
