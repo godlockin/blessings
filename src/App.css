@@ -248,6 +248,33 @@
   border-radius: 8px;
   border: 1px solid rgba(248, 113, 113, 0.3);
   margin-top: 1rem;
+  text-align: center;
+}
+
+.error p {
+  margin: 0 0 0.75rem 0;
+}
+
+.retry-btn {
+  background: rgba(248, 113, 113, 0.2);
+  color: #F87171;
+  border: 1px solid #F87171;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.retry-btn:hover {
+  background: rgba(248, 113, 113, 0.4);
+}
+
+.task-id-hint {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin-top: 0.5rem;
 }
 
 /* Attempt Progress */

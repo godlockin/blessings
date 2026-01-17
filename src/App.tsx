@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import './App.css'
 
-// Priority: VITE_BACKEND_URL > VITE_API_BASE > Default to /api via proxy or direct
+// Image compression threshold (500KB)
+const COMPRESSION_THRESHOLD = 500 * 1024
+const MAX_IMAGE_DIMENSION = 1920
+const COMPRESSION_QUALITY = 0.8
 
 function App() {
   const [file, setFile] = useState<File | null>(null)
@@ -10,28 +13,59 @@ function App() {
   const [status, setStatus] = useState<string>('IDLE')
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [reviewDetails] = useState<{
-    current_attempt?: number;
-    max_attempts?: number;
-    last_review?: {
-      approved: boolean;
-      overall_score: number;
-      scores: {
-        face_match: number;
-        outfit: number;
-        pose: number;
-        full_body: number;
-        quality: number;
-        cultural: number;
-        realism: number;
-      };
-      issues: string[];
-      suggestions: string[];
-    };
-  } | null>(null)
+  const [taskId, setTaskId] = useState<string | null>(null)
 
-  // API base path - use relative path for single-app architecture
   const apiBase = '/api'
+
+  // Compress image if needed
+  const compressImage = useCallback(async (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      // If file is small enough, return as is
+      if (file.size <= COMPRESSION_THRESHOLD) {
+        resolve(file)
+        return
+      }
+
+      const img = new Image()
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+
+      img.onload = () => {
+        let { width, height } = img
+
+        // Calculate new dimensions
+        if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+          if (width > height) {
+            height = (height / width) * MAX_IMAGE_DIMENSION
+            width = MAX_IMAGE_DIMENSION
+          } else {
+            width = (width / height) * MAX_IMAGE_DIMENSION
+            height = MAX_IMAGE_DIMENSION
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+        ctx?.drawImage(img, 0, 0, width, height)
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              console.log(`Compressed: ${(file.size / 1024).toFixed(1)}KB → ${(blob.size / 1024).toFixed(1)}KB`)
+              resolve(blob)
+            } else {
+              reject(new Error('Failed to compress image'))
+            }
+          },
+          'image/jpeg',
+          COMPRESSION_QUALITY
+        )
+      }
+
+      img.onerror = () => reject(new Error('Failed to load image'))
+      img.src = URL.createObjectURL(file)
+    })
+  }, [])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -41,55 +75,131 @@ function App() {
       setStatus('IDLE')
       setResultUrl(null)
       setError(null)
+      setTaskId(null)
+    }
+  }
+
+  const pollStatus = useCallback(async (tid: string) => {
+    let pollCount = 0
+    const maxPolls = 120 // 4 minutes max (2s interval)
+
+    const poll = async () => {
+      try {
+        pollCount++
+        if (pollCount > maxPolls) {
+          setError('处理超时，请重试 (Processing timeout, please retry)')
+          setStatus('FAILED')
+          return
+        }
+
+        const res = await fetch(`${apiBase}/status/${tid}`)
+        const data = await res.json()
+
+        if (!res.ok) {
+          if (data.code === 'TASK_NOT_FOUND') {
+            // Task may have been processed by different instance
+            setError('任务状态丢失，请重新上传 (Task state lost, please re-upload)')
+            setStatus('FAILED')
+            return
+          }
+          throw new Error(data.error || 'Status check failed')
+        }
+
+        setStatus(data.status)
+
+        if (data.status === 'COMPLETED') {
+          await fetchResult(tid)
+        } else if (data.status === 'FAILED') {
+          setError(data.errorMessage || '处理失败 (Processing failed)')
+          setStatus('FAILED')
+        } else {
+          // Continue polling
+          setTimeout(poll, 2000)
+        }
+      } catch (e: any) {
+        console.error('Poll error:', e)
+        // Continue polling on transient errors
+        if (pollCount < maxPolls) {
+          setTimeout(poll, 2000)
+        } else {
+          setError(e.message || '轮询失败 (Polling failed)')
+          setStatus('FAILED')
+        }
+      }
+    }
+
+    poll()
+  }, [])
+
+  const fetchResult = async (tid: string) => {
+    try {
+      const res = await fetch(`${apiBase}/result/${tid}`)
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch result')
+      }
+
+      setResultUrl(data.imageUrl)
+      setStatus('COMPLETED')
+    } catch (e: any) {
+      console.error('Fetch result error:', e)
+      setError(e.message || '获取结果失败 (Failed to fetch result)')
+      setStatus('FAILED')
     }
   }
 
   const handleUpload = async () => {
     if (!file) return
-    setStatus('GENERATING')
+    setStatus('UPLOADING')
     setError(null)
     setResultUrl(null)
-
-    const formData = new FormData()
-    formData.append('image', file)
-    if (inviteCode) {
-      formData.append('invite_code', inviteCode)
-    }
+    setTaskId(null)
 
     try {
+      // Compress image if needed
+      let imageToUpload: Blob = file
+      if (file.size > COMPRESSION_THRESHOLD) {
+        setStatus('COMPRESSING')
+        imageToUpload = await compressImage(file)
+      }
+
+      setStatus('UPLOADING')
+      const formData = new FormData()
+      formData.append('image', imageToUpload, file.name)
+      if (inviteCode) {
+        formData.append('invite_code', inviteCode)
+      }
+
       const res = await fetch(`${apiBase}/upload`, {
         method: 'POST',
         body: formData
       })
 
+      const data = await res.json()
+
       if (!res.ok) {
-        let errorMsg = 'Upload failed';
-        try {
-          const err = await res.json()
-          errorMsg = err.error || errorMsg
-        } catch (jsonErr) {
-          console.error("Failed to parse error response JSON:", jsonErr)
-          const text = await res.text().catch(() => '')
-          if (text) errorMsg += `: ${text}`
+        let errorMsg = data.error || 'Upload failed'
+        if (data.code === 'INVALID_INVITE_CODE') {
+          errorMsg = '邀请码无效 (Invalid invite code)'
+        } else if (data.code === 'NO_IMAGE') {
+          errorMsg = '请选择图片 (Please select an image)'
+        } else if (data.code === 'IMAGE_TOO_LARGE') {
+          errorMsg = '图片太大，最大10MB (Image too large, max 10MB)'
         }
         throw new Error(errorMsg)
       }
 
-      const data = await res.json()
-
-      if (data.success && data.imageUrl) {
-        // Synchronous mode - result is returned directly
-        setResultUrl(data.imageUrl)
-        setStatus('COMPLETED')
+      if (data.taskId) {
+        setTaskId(data.taskId)
+        setStatus(data.status || 'ANALYZING')
+        pollStatus(data.taskId)
       } else {
-        throw new Error(data.error || 'Unknown error')
+        throw new Error('No task ID returned')
       }
-    } catch (e) {
-      if (e instanceof Error) {
-        setError(e.message)
-      } else {
-        setError('An unknown error occurred')
-      }
+    } catch (e: any) {
+      console.error('Upload error:', e)
+      setError(e.message || '上传失败 (Upload failed)')
       setStatus('FAILED')
     }
   }
@@ -105,49 +215,43 @@ function App() {
   }
 
   const getStatusClass = () => {
+    if (status.startsWith('GENERATING') || status.startsWith('REVIEWING') || status.startsWith('REGENERATING')) {
+      return 'generating'
+    }
     return status.toLowerCase()
   }
 
   const getStatusText = () => {
     const statusMap: Record<string, string> = {
       'IDLE': '',
-      'UPLOADING': '📤 Uploading...',
-      'PENDING': '⏳ Processing request...',
-      'ANALYZING': '🔍 AI analyzing your photo...',
-      'GENERATING': '✨ Creating your blessing...',
-      'COMPLETED': '🎉 Complete!',
-      'FAILED': '❌ Failed'
+      'COMPRESSING': '🗜️ 压缩图片中... Compressing...',
+      'UPLOADING': '📤 上传中... Uploading...',
+      'ANALYZING': '🔍 AI 分析中... AI analyzing...',
+      'GENERATING': '✨ 生成中... Generating...',
+      'COMPLETED': '🎉 完成! Complete!',
+      'FAILED': '❌ 失败 Failed'
     }
 
-    // Handle attempt statuses (e.g., GENERATING_ATTEMPT_2)
+    // Handle attempt statuses
     if (status.startsWith('GENERATING_ATTEMPT_')) {
       const attempt = status.split('_').pop()
-      return `✨ Creating your blessing (Attempt ${attempt})...`
+      return `✨ 生成中 (第${attempt}次尝试)... Generating (Attempt ${attempt})...`
     }
     if (status.startsWith('REVIEWING_ATTEMPT_')) {
       const attempt = status.split('_').pop()
-      return `🧐 Expert Reviewing (Attempt ${attempt})...`
-    }
-    if (status.startsWith('REGENERATING_ATTEMPT_')) {
-      const attempt = status.split('_').pop()
-      return `🔄 Optimizing details (Attempt ${attempt})...`
+      return `🧐 专家评审中 (第${attempt}次)... Expert reviewing (Attempt ${attempt})...`
     }
 
-    return statusMap[status] || status
+    return statusMap[status] || `⏳ ${status}...`
   }
 
-
-
-
-  // Robust check for processing state (includes all ATTEMPT statuses)
-  // Only enable button if IDLE, COMPLETED, or FAILED
   const isProcessing = !['IDLE', 'COMPLETED', 'FAILED'].includes(status)
 
   const getCurrentStep = () => {
     if (status === 'COMPLETED') return 4
     if (status.startsWith('GENERATING') || status.startsWith('REVIEWING') || status.startsWith('REGENERATING')) return 3
     if (status === 'ANALYZING') return 2
-    return 1 // IDLE, UPLOADING, PENDING
+    return 1
   }
 
   const currentStep = getCurrentStep()
@@ -226,7 +330,7 @@ function App() {
               {isProcessing ? (
                 <>
                   <span className="spinner"></span>
-                  &nbsp; Generating...
+                  &nbsp; 处理中... Processing...
                 </>
               ) : (
                 '🎆 Generate Blessing'
@@ -242,62 +346,26 @@ function App() {
                   {isProcessing && <span className="spinner"></span>}
                   {getStatusText()}
                 </p>
-
-                {/* Attempt Progress */}
-                {reviewDetails?.current_attempt && isProcessing && (
-                  <p className="attempt-progress">
-                    尝试次数: {reviewDetails.current_attempt} / {reviewDetails.max_attempts || 3}
-                  </p>
+                {taskId && isProcessing && (
+                  <p className="task-id-hint">Task: {taskId.slice(0, 8)}...</p>
                 )}
               </>
             )}
 
-            {/* Expert Review Feedback */}
-            {reviewDetails?.last_review && isProcessing && (
-              <div className="review-feedback">
-                <div className="review-header">
-                  <span className="review-icon">⚠️</span>
-                  <span>上一次生成未通过专家评审</span>
-                </div>
-
-                <div className="review-scores">
-                  <div className="overall-score">
-                    综合评分: <strong>{reviewDetails.last_review.overall_score.toFixed(1)}</strong>/10
-                  </div>
-                  <div className="score-grid">
-                    {Object.entries({
-                      '人脸匹配': reviewDetails.last_review.scores.face_match,
-                      '服装': reviewDetails.last_review.scores.outfit,
-                      '姿势': reviewDetails.last_review.scores.pose,
-                      '全身': reviewDetails.last_review.scores.full_body,
-                      '质量': reviewDetails.last_review.scores.quality,
-                      '文化': reviewDetails.last_review.scores.cultural,
-                      '写实度': reviewDetails.last_review.scores.realism
-                    }).map(([label, score]) => (
-                      <div key={label} className={`score-item ${score < 7 ? 'low-score' : ''}`}>
-                        <span className="score-label">{label}</span>
-                        <span className="score-value">{score}/10</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {reviewDetails.last_review.issues.length > 0 && (
-                  <div className="review-issues">
-                    <p className="issues-title">发现的问题:</p>
-                    <ul>
-                      {reviewDetails.last_review.issues.map((issue, i) => (
-                        <li key={i}>{issue}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <p className="review-tip">💡 系统正在根据反馈优化生成...</p>
+            {error && (
+              <div className="error">
+                <p>⚠️ {error}</p>
+                <button
+                  className="retry-btn"
+                  onClick={() => {
+                    setError(null)
+                    setStatus('IDLE')
+                  }}
+                >
+                  重试 Retry
+                </button>
               </div>
             )}
-
-            {error && <p className="error">⚠️ {error}</p>}
           </div>
 
           {/* Result Section */}
