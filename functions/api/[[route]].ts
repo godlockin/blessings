@@ -14,9 +14,10 @@ export type Bindings = {
     OSS_ENDPOINT: string
     OSS_PREFIX?: string
     INVITE_CODE?: string
+    TASKS: KVNamespace  // Cloudflare KV for persistent task storage
 }
 
-// In-memory task storage (note: won't persist across Worker instances)
+// Task interface stored in KV
 interface Task {
     id: string
     session_id: string
@@ -28,16 +29,15 @@ interface Task {
     created_at: number
 }
 
-const tasks = new Map<string, Task>()
+// Helper functions for KV operations
+async function getTask(kv: KVNamespace, taskId: string): Promise<Task | null> {
+    const data = await kv.get(taskId, 'json')
+    return data as Task | null
+}
 
-// Clean up old tasks (older than 1 hour)
-function cleanupOldTasks() {
-    const oneHourAgo = Date.now() - 60 * 60 * 1000
-    for (const [id, task] of tasks) {
-        if (task.created_at < oneHourAgo) {
-            tasks.delete(id)
-        }
-    }
+async function setTask(kv: KVNamespace, task: Task): Promise<void> {
+    // Store with 1 hour TTL (auto cleanup)
+    await kv.put(task.id, JSON.stringify(task), { expirationTtl: 3600 })
 }
 
 const app = new Hono<{ Bindings: Bindings }>().basePath('/api')
@@ -68,8 +68,6 @@ app.get('', (c) => {
 // Upload endpoint - returns taskId immediately
 app.post('/upload', async (c) => {
     try {
-        cleanupOldTasks()
-
         const body = await c.req.parseBody()
         const image = body['image']
         const inviteCode = body['invite_code'] as string | undefined
@@ -106,7 +104,7 @@ app.post('/upload', async (c) => {
         await oss.putObject(imagePath, imageBuffer, image.type)
         console.log('Original image uploaded:', imagePath)
 
-        // Create task in memory
+        // Create task in KV
         const task: Task = {
             id: taskId,
             session_id: sessionId,
@@ -114,7 +112,7 @@ app.post('/upload', async (c) => {
             original_image_path: imagePath,
             created_at: Date.now()
         }
-        tasks.set(taskId, task)
+        await setTask(c.env.TASKS, task)
 
         // Async processing
         c.executionCtx.waitUntil((async () => {
@@ -122,14 +120,14 @@ app.post('/upload', async (c) => {
                 const ai = new AIService(c.env)
 
                 // Update status helper
-                const updateStatus = (status: string, extra?: Partial<Task>) => {
-                    const currentTask = tasks.get(taskId)
+                const updateStatus = async (status: string, extra?: Partial<Task>) => {
+                    const currentTask = await getTask(c.env.TASKS, taskId)
                     if (currentTask) {
-                        tasks.set(taskId, { ...currentTask, status, ...extra })
+                        await setTask(c.env.TASKS, { ...currentTask, status, ...extra })
                     }
                 }
 
-                updateStatus('ANALYZING')
+                await updateStatus('ANALYZING')
                 console.log('Starting AI analysis...')
 
                 // AI Analysis
@@ -146,7 +144,7 @@ app.post('/upload', async (c) => {
                 // Build generation prompt
                 const prompt = `Generate a Chinese New Year blessing photo based on this analysis: ${JSON.stringify(analysisJson)}`
 
-                updateStatus('GENERATING')
+                await updateStatus('GENERATING')
                 console.log('Starting image generation...')
 
                 // Generate with expert review
@@ -155,7 +153,7 @@ app.post('/upload', async (c) => {
                     imageBuffer,
                     3,
                     async (status, attempt) => {
-                        updateStatus(`${status}_ATTEMPT_${attempt}`)
+                        await updateStatus(`${status}_ATTEMPT_${attempt}`)
                     }
                 )
                 console.log(`Generation complete after ${attempts} attempts`)
@@ -166,7 +164,7 @@ app.post('/upload', async (c) => {
                 console.log('Generated image uploaded:', generatedPath)
 
                 // Update to completed
-                updateStatus('COMPLETED', {
+                await updateStatus('COMPLETED', {
                     generated_image_path: generatedPath,
                     analysis_result: JSON.stringify({
                         ...analysisJson,
@@ -176,9 +174,9 @@ app.post('/upload', async (c) => {
                 })
             } catch (error: any) {
                 console.error('Processing failed:', error)
-                const failedTask = tasks.get(taskId)
+                const failedTask = await getTask(c.env.TASKS, taskId)
                 if (failedTask) {
-                    tasks.set(taskId, {
+                    await setTask(c.env.TASKS, {
                         ...failedTask,
                         status: 'FAILED',
                         error_message: error.message || 'Unknown error'
@@ -205,13 +203,13 @@ app.post('/upload', async (c) => {
 // Status endpoint - poll this to check progress
 app.get('/status/:taskId', async (c) => {
     const taskId = c.req.param('taskId')
-    const task = tasks.get(taskId)
+    const task = await getTask(c.env.TASKS, taskId)
 
     if (!task) {
         return c.json({
             error: 'Task not found',
             code: 'TASK_NOT_FOUND',
-            hint: 'Task may have expired or was processed by a different instance'
+            hint: 'Task may have expired (1 hour TTL)'
         }, 404)
     }
 
@@ -225,7 +223,7 @@ app.get('/status/:taskId', async (c) => {
 // Result endpoint - get the generated image
 app.get('/result/:taskId', async (c) => {
     const taskId = c.req.param('taskId')
-    const task = tasks.get(taskId)
+    const task = await getTask(c.env.TASKS, taskId)
 
     if (!task) {
         return c.json({
