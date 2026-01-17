@@ -9,7 +9,6 @@ function App() {
   const [inviteCode, setInviteCode] = useState<string>('')
   const [status, setStatus] = useState<string>('IDLE')
   const [resultUrl, setResultUrl] = useState<string | null>(null)
-  const [originalUrl, setOriginalUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reviewDetails] = useState<{
     current_attempt?: number;
@@ -41,7 +40,6 @@ function App() {
       setPreview(URL.createObjectURL(f))
       setStatus('IDLE')
       setResultUrl(null)
-      setOriginalUrl(null)
       setError(null)
     }
   }
@@ -307,14 +305,14 @@ function App() {
             <div className="result-section">
               <h2>🎊 Your Blessing Photo</h2>
               <div className="comparison-container">
-                {originalUrl && (
+                {preview && (
                   <div className="image-wrapper">
-                    <p>Original</p>
-                    <img src={originalUrl} alt="Original" className="result-img" />
+                    <p>原图 Original</p>
+                    <img src={preview} alt="Original" className="result-img" />
                   </div>
                 )}
                 <div className="image-wrapper">
-                  <p>Generated</p>
+                  <p>生成 Generated</p>
                   <img src={resultUrl} alt="Generated" className="result-img" />
                 </div>
               </div>
