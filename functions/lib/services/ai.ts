@@ -62,6 +62,8 @@ export class AIService {
    * This preserves the person's face identity by using the original image as input
    */
   async generateImage(prompt: string, originalImageBuffer?: ArrayBuffer): Promise<ArrayBuffer> {
+    let lastError: Error | null = null;
+
     try {
       // Use Gemini for image generation with original image as reference
       const model = this.genAI.getGenerativeModel({
@@ -132,19 +134,33 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
           // @ts-ignore
           const imageData = part.inlineData.data
           const imageBuffer = Buffer.from(imageData, 'base64')
-          console.log("Successfully generated image with Gemini")
-          return imageBuffer.buffer.slice(imageBuffer.byteOffset, imageBuffer.byteOffset + imageBuffer.byteLength)
+          console.log(`Successfully generated image with Gemini: ${imageBuffer.byteLength} bytes`)
+          if (imageBuffer.byteLength > 0) {
+            return imageBuffer.buffer.slice(imageBuffer.byteOffset, imageBuffer.byteOffset + imageBuffer.byteLength)
+          }
         }
       }
 
       // If no image in response, fall back to Pollinations.ai
       console.warn("Gemini did not return an image, falling back to Pollinations.ai")
-      return await this.generateImageFallback(prompt)
+      lastError = new Error('Gemini returned no image');
 
-    } catch (e) {
-      console.error("Gemini Image Generation Failed:", e)
+    } catch (e: any) {
+      console.error("Gemini Image Generation Failed:", e?.message || e)
+      lastError = e;
+    }
+
+    // Try Pollinations.ai fallback
+    try {
       console.log("Falling back to Pollinations.ai")
-      return await this.generateImageFallback(prompt)
+      const fallbackBuffer = await this.generateImageFallback(prompt)
+      if (fallbackBuffer && fallbackBuffer.byteLength > 0) {
+        return fallbackBuffer
+      }
+      throw new Error('Pollinations.ai returned empty buffer')
+    } catch (fallbackError: any) {
+      console.error("Pollinations.ai fallback also failed:", fallbackError?.message || fallbackError)
+      throw new Error(`Image generation failed: Gemini: ${lastError?.message}, Pollinations: ${fallbackError?.message}`)
     }
   }
 
