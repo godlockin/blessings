@@ -303,4 +303,41 @@ app.get('/debug/egress-ip', async (c) => {
     })
 })
 
+// Debug endpoint - test Pollinations.ai directly
+app.get('/debug/test-pollinations', async (c) => {
+    try {
+        const prompt = encodeURIComponent('A simple red circle on white background')
+        const url = `https://image.pollinations.ai/prompt/${prompt}?nologo=true&width=256&height=256`
+        console.log('Testing Pollinations.ai at:', url)
+
+        const response = await fetch(url)
+        console.log('Pollinations response status:', response.status)
+        console.log('Pollinations response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())))
+
+        if (!response.ok) {
+            return c.json({
+                success: false,
+                status: response.status,
+                statusText: response.statusText
+            })
+        }
+
+        const buffer = await response.arrayBuffer()
+        console.log('Pollinations buffer size:', buffer.byteLength)
+
+        return c.json({
+            success: true,
+            status: response.status,
+            bufferSize: buffer.byteLength,
+            contentType: response.headers.get('content-type')
+        })
+    } catch (e: any) {
+        console.error('Pollinations test error:', e)
+        return c.json({
+            success: false,
+            error: e.message
+        }, 500)
+    }
+})
+
 export const onRequest = handle(app)
