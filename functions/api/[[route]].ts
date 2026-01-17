@@ -156,13 +156,15 @@ app.post('/upload', async (c) => {
                 console.log(`Config: maxRetries=${maxRetries}, enableReview=${enableReview}`)
 
                 // Generate with expert review
+                const skipReview = !enableReview
                 const { imageBuffer: generatedImageBuffer, finalReview, attempts } = await ai.generateWithReview(
                     prompt,
                     imageBuffer,
                     maxRetries,
-                    enableReview ? async (status, attempt) => {
+                    async (status, attempt) => {
                         await updateStatus(`${status}_ATTEMPT_${attempt}`)
-                    } : undefined
+                    },
+                    skipReview
                 )
                 console.log(`Generation complete after ${attempts} attempts`)
 

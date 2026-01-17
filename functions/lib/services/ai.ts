@@ -239,14 +239,16 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
   }
 
   /**
-   * Generate image with expert review loop
+   * Generate image with optional expert review loop
    * Will retry up to maxRetries times if experts don't approve
+   * @param skipReview If true, skips the review step entirely for faster processing
    */
   async generateWithReview(
     prompt: string,
     originalImageBuffer: ArrayBuffer,
     maxRetries: number = 3,
-    onStatusUpdate?: (status: string, attempt: number, review?: ReviewResult) => Promise<void>
+    onStatusUpdate?: (status: string, attempt: number, review?: ReviewResult) => Promise<void>,
+    skipReview: boolean = false
   ): Promise<{ imageBuffer: ArrayBuffer; finalReview: ReviewResult; attempts: number }> {
     let lastGeneratedBuffer: ArrayBuffer | null = null
     let lastReview: ReviewResult | null = null
@@ -261,6 +263,23 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
       // Generate image with original as reference for face preservation
       const generatedBuffer = await this.generateImage(prompt, originalImageBuffer)
       lastGeneratedBuffer = generatedBuffer
+
+      // Skip review if disabled
+      if (skipReview) {
+        console.log('Review disabled, skipping expert review')
+        const autoApproveReview: ReviewResult = {
+          approved: true,
+          overall_score: 10,
+          scores: { face_match: 10, outfit: 10, pose: 10, full_body: 10, quality: 10, cultural: 10, realism: 10 },
+          issues: [],
+          suggestions: []
+        }
+        return {
+          imageBuffer: generatedBuffer,
+          finalReview: autoApproveReview,
+          attempts: attempt
+        }
+      }
 
       if (onStatusUpdate) {
         await onStatusUpdate('REVIEWING', attempt)
