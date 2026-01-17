@@ -167,11 +167,17 @@ app.post('/upload', async (c) => {
                     skipReview
                 )
                 console.log(`Generation complete after ${attempts} attempts`)
+                console.log(`Generated image buffer size: ${generatedImageBuffer.byteLength} bytes`)
+
+                // Validate generated image
+                if (!generatedImageBuffer || generatedImageBuffer.byteLength === 0) {
+                    throw new Error('Generated image buffer is empty')
+                }
 
                 // Upload generated image
                 const generatedPath = `${prefix}sessions/${sessionDir}/generated.jpg`
                 await oss.putObject(generatedPath, generatedImageBuffer, 'image/jpeg')
-                console.log('Generated image uploaded:', generatedPath)
+                console.log('Generated image uploaded:', generatedPath, `(${generatedImageBuffer.byteLength} bytes)`)
 
                 // Update to completed
                 await updateStatus('COMPLETED', {
@@ -255,11 +261,15 @@ app.get('/result/:taskId', async (c) => {
     }
 
     const oss = new OSSService(c.env)
+    console.log('Fetching generated image:', task.generated_image_path)
     const imageData = await oss.getObject(task.generated_image_path)
 
     if (!imageData) {
+        console.error('Image data is null/undefined')
         return c.json({ error: 'Failed to fetch generated image' }, 500)
     }
+
+    console.log(`Fetched image size: ${imageData.byteLength} bytes`)
 
     let analysisResult = {}
     try {
@@ -268,10 +278,13 @@ app.get('/result/:taskId', async (c) => {
         }
     } catch (e) { }
 
+    const base64Data = Buffer.from(imageData).toString('base64')
+    console.log(`Base64 encoded length: ${base64Data.length} chars`)
+
     return c.json({
         taskId: task.id,
         status: task.status,
-        imageUrl: `data:image/jpeg;base64,${Buffer.from(imageData).toString('base64')}`,
+        imageUrl: `data:image/jpeg;base64,${base64Data}`,
         analysis: analysisResult
     })
 })
