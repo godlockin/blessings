@@ -369,4 +369,48 @@ app.get('/debug/test-generate', async (c) => {
     }
 })
 
+// Debug endpoint - test full generateImage flow with original image
+app.get('/debug/test-generate-with-image', async (c) => {
+    try {
+        const ai = new AIService(c.env.GEMINI_API_KEY)
+        const testPrompt = 'A simple portrait of a person wearing red Chinese clothes, festive background'
+
+        // Create a simple PNG as test original image (100x100 blue square)
+        // PNG header + minimal IHDR + IDAT + IEND chunks
+        const pngData = new Uint8Array([
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+            0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR length + type
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // Width=1, Height=1
+            0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE, // Bit depth, color type, CRC
+            0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54, // IDAT length + type
+            0x08, 0xD7, 0x63, 0xF8, 0x0F, 0x00, 0x00, 0x01, // Compressed data
+            0x01, 0x00, 0x18, 0xDD, 0x8D, 0xB4, // CRC
+            0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, // IEND
+            0xAE, 0x42, 0x60, 0x82 // CRC
+        ])
+
+        console.log('=== DEBUG TEST GENERATE WITH IMAGE START ===')
+        console.log('GEMINI_API_KEY length:', c.env.GEMINI_API_KEY?.length || 0)
+        console.log('Test image size:', pngData.length, 'bytes')
+
+        const result = await ai.generateImage(testPrompt, pngData.buffer as ArrayBuffer)
+
+        console.log('=== DEBUG TEST GENERATE WITH IMAGE END ===')
+        console.log('Result type:', typeof result)
+        console.log('Result byteLength:', result?.byteLength)
+
+        return c.json({
+            success: true,
+            bufferSize: result?.byteLength || 0
+        })
+    } catch (e: any) {
+        console.error('Test generate with image error:', e)
+        return c.json({
+            success: false,
+            error: e.message,
+            stack: e.stack?.split('\n').slice(0, 5).join('\n') // first 5 lines of stack
+        }, 500)
+    }
+})
+
 export const onRequest = handle(app)
