@@ -152,23 +152,28 @@ Generate a beautiful Chinese New Year blessing photo of this exact person.
    * Fallback image generation using Pollinations.ai (text-to-image only)
    */
   private async generateImageFallback(prompt: string): Promise<ArrayBuffer> {
-    const faceMatch = prompt.match(/FACE IDENTITY \(MUST PRESERVE EXACTLY\):\s*([\s\S]*?)(?:Hair:|OUTFIT|$)/);
-    const hairMatch = prompt.match(/Hair:\s*(.*?)(?:\n|OUTFIT|$)/);
-    const faceDescription = faceMatch ? faceMatch[1].trim() : "person with natural features";
-    const hairDescription = hairMatch ? hairMatch[1].trim() : "natural hair";
-
-    const enhancedPrompt = `A photorealistic full body shot of a person with ${faceDescription}, ${hairDescription}. Wearing elegant red Chinese Qipao or Tang suit, traditional blessing gesture (拱手礼), Chinese New Year celebration background with red lanterns, professional photography, 8k resolution`;
+    // Simplified prompt for Pollinations.ai - always generates a festive image
+    const enhancedPrompt = `A photorealistic full body portrait of an Asian person wearing elegant traditional red Chinese Qipao or Tang suit with gold embroidery. Traditional Chinese New Year blessing gesture with hands clasped together. Festive background with red lanterns and golden decorations. Professional studio photography, natural lighting, sharp focus, 8k resolution, highly detailed face`;
     const encodedPrompt = encodeURIComponent(enhancedPrompt);
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?nologo=true&width=768&height=1024`;
 
     console.log("Fetching fallback image from Pollinations.ai");
+    console.log("Fallback URL:", imageUrl);
 
     const response = await fetch(imageUrl);
     if (!response.ok) {
+      console.error(`Pollinations.ai error: ${response.status} ${response.statusText}`);
       throw new Error(`Failed to fetch image from Pollinations.ai: ${response.statusText}`);
     }
 
-    return await response.arrayBuffer();
+    const arrayBuffer = await response.arrayBuffer();
+    console.log(`Pollinations.ai returned ${arrayBuffer.byteLength} bytes`);
+
+    if (arrayBuffer.byteLength === 0) {
+      throw new Error('Pollinations.ai returned empty image');
+    }
+
+    return arrayBuffer;
   }
 
   /**
