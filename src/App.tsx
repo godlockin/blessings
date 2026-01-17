@@ -7,12 +7,11 @@ function App() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [inviteCode, setInviteCode] = useState<string>('')
-  const [, setTaskId] = useState<string | null>(null)
   const [status, setStatus] = useState<string>('IDLE')
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [originalUrl, setOriginalUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [reviewDetails, setReviewDetails] = useState<{
+  const [reviewDetails] = useState<{
     current_attempt?: number;
     max_attempts?: number;
     last_review?: {
@@ -49,8 +48,9 @@ function App() {
 
   const handleUpload = async () => {
     if (!file) return
-    setStatus('UPLOADING')
+    setStatus('GENERATING')
     setError(null)
+    setResultUrl(null)
 
     const formData = new FormData()
     formData.append('image', file)
@@ -78,9 +78,14 @@ function App() {
       }
 
       const data = await res.json()
-      setTaskId(data.task_id)
-      setStatus('PENDING')
-      pollStatus(data.task_id)
+
+      if (data.success && data.imageUrl) {
+        // Synchronous mode - result is returned directly
+        setResultUrl(data.imageUrl)
+        setStatus('COMPLETED')
+      } else {
+        throw new Error(data.error || 'Unknown error')
+      }
     } catch (e) {
       if (e instanceof Error) {
         setError(e.message)
@@ -88,64 +93,6 @@ function App() {
         setError('An unknown error occurred')
       }
       setStatus('FAILED')
-    }
-  }
-
-  const pollStatus = async (tid: string) => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`${apiBase}/status/${tid}`)
-        const data = await res.json()
-
-        setStatus(data.status)
-
-        // Parse and display progress details
-        if (data.analysis_result) {
-          try {
-            const analysisData = JSON.parse(data.analysis_result)
-            if (analysisData.current_attempt || analysisData.last_review) {
-              setReviewDetails({
-                current_attempt: analysisData.current_attempt,
-                max_attempts: analysisData.max_attempts || 3,
-                last_review: analysisData.last_review
-              })
-            }
-          } catch {
-            // Ignore parse errors
-          }
-        }
-
-        if (data.status === 'COMPLETED') {
-          clearInterval(interval)
-          setReviewDetails(null) // Clear review details on completion
-          fetchResult(tid)
-        } else if (data.status === 'FAILED') {
-          clearInterval(interval)
-          let errorMsg = 'Processing failed'
-          try {
-            const analysisResult = JSON.parse(data.analysis_result || '{}')
-            errorMsg = analysisResult.error || analysisResult.issues?.join(', ') || errorMsg
-          } catch {
-            errorMsg = data.analysis_result || errorMsg
-          }
-          setError(errorMsg)
-        }
-      } catch (e) {
-        console.error(e)
-        // ignore transient errors
-      }
-    }, 2000)
-  }
-
-  const fetchResult = async (tid: string) => {
-    try {
-      const res = await fetch(`${apiBase}/result/${tid}`)
-      const data = await res.json()
-      setResultUrl(data.url)
-      setOriginalUrl(data.originalUrl)
-    } catch (e) {
-      console.error(e)
-      setError('Failed to fetch result')
     }
   }
 

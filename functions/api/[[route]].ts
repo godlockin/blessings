@@ -14,29 +14,6 @@ export type Bindings = {
     OSS_ENDPOINT: string
     OSS_PREFIX?: string
     INVITE_CODE?: string
-    TASKS: KVNamespace
-}
-
-// Task interface stored in KV
-interface Task {
-    id: string
-    session_id: string
-    status: string
-    original_image_path: string
-    generated_image_path?: string
-    analysis_result?: string
-    created_at: number
-}
-
-// Helper functions for KV operations
-async function getTask(kv: KVNamespace, taskId: string): Promise<Task | null> {
-    const data = await kv.get(taskId, 'json')
-    return data as Task | null
-}
-
-async function setTask(kv: KVNamespace, task: Task): Promise<void> {
-    // Store with 1 hour TTL
-    await kv.put(task.id, JSON.stringify(task), { expirationTtl: 3600 })
 }
 
 const app = new Hono<{ Bindings: Bindings }>().basePath('/api')
@@ -59,11 +36,11 @@ app.get('/', (c) => {
     return c.text('Blessings API is running!')
 })
 
-// Also match without trailing slash
 app.get('', (c) => {
     return c.text('Blessings API is running!')
 })
 
+// Synchronous processing - wait for completion and return result directly
 app.post('/upload', async (c) => {
     try {
         const body = await c.req.parseBody()
@@ -81,9 +58,8 @@ app.post('/upload', async (c) => {
         }
 
         const sessionId = crypto.randomUUID()
-        const taskId = crypto.randomUUID()
-
         const oss = new OSSService(c.env)
+        const ai = new AIService(c.env)
         const imageBuffer = await image.arrayBuffer()
 
         const now = new Date()
@@ -93,150 +69,54 @@ app.post('/upload', async (c) => {
         const prefix = c.env.OSS_PREFIX ? c.env.OSS_PREFIX.replace(/\/+$/, '') + '/' : ''
         const imagePath = `${prefix}sessions/${sessionDir}/original.jpg`
 
+        // Upload original image
         await oss.putObject(imagePath, imageBuffer, image.type)
+        console.log('Original image uploaded:', imagePath)
 
-        // Store task in KV
-        const task: Task = {
-            id: taskId,
-            session_id: sessionId,
-            status: 'ANALYZING',
-            original_image_path: imagePath,
-            created_at: Date.now()
+        // AI Analysis
+        console.log('Starting AI analysis...')
+        const analysisResult = await ai.analyzeImage(imageBuffer, image.type)
+        let analysisJson: any = {}
+        try {
+            const jsonStr = analysisResult.replace(/```json/g, '').replace(/```/g, '').trim()
+            analysisJson = JSON.parse(jsonStr)
+        } catch (e) {
+            analysisJson = { raw_analysis: analysisResult }
         }
-        await setTask(c.env.TASKS, task)
+        console.log('Analysis complete')
 
-        // Async processing
-        c.executionCtx.waitUntil((async () => {
-            try {
-                const ai = new AIService(c.env)
+        // Build generation prompt
+        const prompt = `Generate a Chinese New Year blessing photo based on this analysis: ${JSON.stringify(analysisJson)}`
 
-                // Update status helper
-                const updateStatus = async (status: string) => {
-                    const currentTask = await getTask(c.env.TASKS, taskId)
-                    if (currentTask) {
-                        await setTask(c.env.TASKS, { ...currentTask, status })
-                    }
-                }
+        // Generate with expert review (synchronous)
+        console.log('Starting image generation with expert review...')
+        const { imageBuffer: generatedImageBuffer, finalReview, attempts } = await ai.generateWithReview(
+            prompt,
+            imageBuffer,
+            3
+        )
+        console.log(`Generation complete after ${attempts} attempts`)
 
-                await updateStatus('ANALYZING')
+        // Upload generated image
+        const generatedPath = `${prefix}sessions/${sessionDir}/generated.jpg`
+        await oss.putObject(generatedPath, generatedImageBuffer, 'image/jpeg')
+        console.log('Generated image uploaded:', generatedPath)
 
-                // AI Analysis
-                const analysisResult = await ai.analyzeImage(imageBuffer, image.type)
-                let analysisJson: any = {}
-                try {
-                    const jsonStr = analysisResult.replace(/```json/g, '').replace(/```/g, '').trim()
-                    analysisJson = JSON.parse(jsonStr)
-                } catch (e) {
-                    analysisJson = { raw_analysis: analysisResult }
-                }
-
-                // Build generation prompt
-                const prompt = `Generate a Chinese New Year blessing photo based on this analysis: ${JSON.stringify(analysisJson)}`
-
-                // Generate with expert review
-                const { imageBuffer: generatedImageBuffer, finalReview, attempts } = await ai.generateWithReview(
-                    prompt,
-                    imageBuffer,
-                    3,
-                    async (status, attempt, review) => {
-                        await updateStatus(`${status} (Attempt ${attempt}/3)`)
-                    }
-                )
-
-                // Upload generated image
-                const generatedPath = `${prefix}sessions/${sessionDir}/generated.jpg`
-                await oss.putObject(generatedPath, generatedImageBuffer, 'image/jpeg')
-
-                // Update to completed
-                const completedTask = await getTask(c.env.TASKS, taskId)
-                if (completedTask) {
-                    await setTask(c.env.TASKS, {
-                        ...completedTask,
-                        status: 'COMPLETED',
-                        generated_image_path: generatedPath,
-                        analysis_result: JSON.stringify({
-                            ...analysisJson,
-                            expert_review: finalReview,
-                            generation_attempts: attempts
-                        })
-                    })
-                }
-            } catch (error: any) {
-                console.error('Processing failed:', error)
-                const failedTask = await getTask(c.env.TASKS, taskId)
-                if (failedTask) {
-                    await setTask(c.env.TASKS, {
-                        ...failedTask,
-                        status: 'FAILED',
-                        analysis_result: JSON.stringify({ error: error.message })
-                    })
-                }
-            }
-        })())
-
+        // Return result directly
         return c.json({
-            taskId,
-            status: 'ANALYZING',
-            message: 'Image uploaded and processing started'
+            success: true,
+            sessionId,
+            imageUrl: `data:image/jpeg;base64,${Buffer.from(generatedImageBuffer).toString('base64')}`,
+            analysis: {
+                ...analysisJson,
+                expert_review: finalReview,
+                generation_attempts: attempts
+            }
         })
     } catch (error: any) {
-        console.error('Upload error:', error)
+        console.error('Processing error:', error)
         return c.json({ error: error.message }, 500)
     }
-})
-
-app.get('/status/:taskId', async (c) => {
-    const taskId = c.req.param('taskId')
-    const task = await getTask(c.env.TASKS, taskId)
-
-    if (!task) {
-        return c.json({ error: 'Task not found' }, 404)
-    }
-
-    return c.json({
-        taskId: task.id,
-        status: task.status,
-        originalImagePath: task.original_image_path,
-        generatedImagePath: task.generated_image_path
-    })
-})
-
-app.get('/result/:taskId', async (c) => {
-    const taskId = c.req.param('taskId')
-    const task = await getTask(c.env.TASKS, taskId)
-
-    if (!task) {
-        return c.json({ error: 'Task not found' }, 404)
-    }
-
-    if (task.status !== 'COMPLETED') {
-        return c.json({ error: 'Task not completed', status: task.status }, 400)
-    }
-
-    if (!task.generated_image_path) {
-        return c.json({ error: 'No generated image available' }, 404)
-    }
-
-    const oss = new OSSService(c.env)
-    const imageData = await oss.getObject(task.generated_image_path)
-
-    if (!imageData) {
-        return c.json({ error: 'Failed to fetch generated image' }, 500)
-    }
-
-    let analysisResult = {}
-    try {
-        if (task.analysis_result) {
-            analysisResult = JSON.parse(task.analysis_result)
-        }
-    } catch (e) { }
-
-    return c.json({
-        taskId: task.id,
-        status: task.status,
-        imageUrl: `data:image/jpeg;base64,${Buffer.from(imageData).toString('base64')}`,
-        analysis: analysisResult
-    })
 })
 
 export const onRequest = handle(app)
