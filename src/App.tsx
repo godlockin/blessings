@@ -81,7 +81,7 @@ function App() {
 
   const pollStatus = useCallback(async (tid: string) => {
     let pollCount = 0
-    const maxPolls = 120 // 4 minutes max (2s interval)
+    const maxPolls = 300 // 10 minutes max (2s interval)
 
     const poll = async () => {
       try {
