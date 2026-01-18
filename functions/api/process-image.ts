@@ -182,7 +182,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       3. 背景为中国新年氛围（红色、灯笼、烟花等）。
       4. 人物穿着喜庆的中国传统服饰或现代红色系服饰。
       5. 动作：双手抱拳作揖（中国传统拜年姿势），保持全身构图。
-      6. 风格：写实风格，具有高辨识度又带有艺术美感。
+      6. 风格：超清摄影风格，具有高辨识度又带有艺术美感，看着像用 iPhone 17 pro max近距离实拍的。
       请只输出英文Prompt内容，不要包含其他解释。`;
 
       const promptResult = await ai.models.generateContent({
@@ -271,12 +271,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       await uploadToOSS(env, originalFilename, body.image);
 
       const generatedFilename = `${prefix}/generated.png`;
-      const ossUrl = await uploadToOSS(env, generatedFilename, generatedImageBase64);
+      await uploadToOSS(env, generatedFilename, generatedImageBase64);
+
+      // Send image chunks
+      const CHUNK_SIZE = 5000;
+      const totalLength = generatedImageBase64.length;
+      let offset = 0;
+      
+      while (offset < totalLength) {
+        const chunk = generatedImageBase64.slice(offset, offset + CHUNK_SIZE);
+        await sendEvent('image_chunk', { chunk });
+        offset += CHUNK_SIZE;
+      }
 
       // Send completion event
       await sendEvent('complete', {
-        result: generatedImageBase64,
-        ossUrl: ossUrl
+        status: 'done'
       });
 
     } catch (err: any) {

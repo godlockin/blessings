@@ -74,43 +74,70 @@ export default function MainPage() {
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let base64Parts: string[] = [];
+      let currentEventType: string | null = null;
+      let currentData: string = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
         
+        // Split strictly by newline
+        const lines = buffer.split(/\r\n|\n/);
         // Keep the last partial line in buffer
         buffer = lines.pop() || '';
         
         for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            const parts = line.split('\n');
-            const eventType = parts[0].replace('event: ', '');
-            const dataStr = parts[1]?.replace('data: ', '');
-            
-            if (!dataStr) continue;
-            
-            try {
-              if (dataStr.trim() === "[DONE]") continue;
-              
-              const data = JSON.parse(dataStr);
-              
-              if (eventType === 'step') {
-                setSteps(prev => prev.map(s => 
-                  s.id === data.id ? { ...s, status: data.status } : s
-                ));
-              } else if (eventType === 'complete') {
-                setResult(`data:image/png;base64,${data.result}`);
-                setSteps(prev => prev.map(s => ({ ...s, status: 'completed' })));
-              } else if (eventType === 'error') {
-                throw new Error(data.message);
+          if (line.trim() === '') {
+            // Empty line means end of an event block
+            if (currentEventType && currentData) {
+              try {
+                if (currentData.trim() === "[DONE]") {
+                  // End of stream
+                } else {
+                  const data = JSON.parse(currentData);
+                  
+                  if (currentEventType === 'step') {
+                    setSteps(prev => prev.map(s => 
+                      s.id === data.id ? { ...s, status: data.status } : s
+                    ));
+                  } else if (currentEventType === 'image_chunk') {
+                    console.log("currentEventType === image_chunk")
+                    if (data.chunk) {
+                       base64Parts.push(data.chunk);
+                    }
+                  } else if (currentEventType === 'complete') {
+                    const fullBase64 = base64Parts.join('').replace(/\s/g, '');
+                    console.log(fullBase64)
+                    if (!fullBase64 || fullBase64 === 'undefined') {
+                      throw new Error('Image generation failed: Empty data received');
+                    }
+                    const imageUrl = `data:image/png;base64,${fullBase64}`;
+                    setResult(imageUrl);
+                    setSteps(prev => prev.map(s => ({ ...s, status: 'completed' })));
+                  } else if (currentEventType === 'error') {
+                    throw new Error(data.message);
+                  }
+                }
+              } catch (e) {
+                console.error('Error parsing SSE message:', e, { event: currentEventType, data: currentData });
               }
-            } catch (e) {
-              console.error('Error parsing SSE data:', e);
+              // Reset for next event
+              currentEventType = null;
+              currentData = '';
             }
+            continue;
+          }
+          
+          if (line.startsWith('event: ')) {
+            currentEventType = line.replace('event: ', '');
+          } else if (line.startsWith('data: ')) {
+            // Append data (SSE spec allows multiple data lines, joined by \n)
+            // But here our backend sends one line JSON, so it's simple.
+            // If multiple data lines occurred, we would append.
+            currentData += line.replace('data: ', '');
           }
         }
       }
