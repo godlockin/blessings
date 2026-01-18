@@ -1,0 +1,16 @@
+name = "blessings-img"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+[vars]
+# These variables can be set in the Cloudflare Dashboard
+# or in .dev.vars for local development
+INVITE_CODE = ""
+OSS_REGION = ""
+OSS_BUCKET = ""
+OSS_ENDPOINT = ""
+OSS_PREFIX = ""
+
+# Note: Secrets like GEMINI_API_KEY, OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET 
+# should be added via `wrangler pages secret put` or in the dashboard, 
+# NOT in this file.

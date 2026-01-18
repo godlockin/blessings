@@ -1,0 +1,8 @@
+GEMINI_API_KEY=your_gemini_api_key_here
+INVITE_CODE=your_invite_code_here
+OSS_REGION=oss-cn-hangzhou
+OSS_ACCESS_KEY_ID=your_access_key_id
+OSS_ACCESS_KEY_SECRET=your_access_key_secret
+OSS_BUCKET=your_bucket_name
+OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
+OSS_PREFIX=blessings
