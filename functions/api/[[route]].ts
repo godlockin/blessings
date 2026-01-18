@@ -154,18 +154,38 @@ app.post('/upload', async (c) => {
                 const maxRetries = parseInt(c.env.MAX_RETRIES || '1', 10)
                 const enableReview = c.env.ENABLE_REVIEW !== 'false'
                 console.log(`Config: maxRetries=${maxRetries}, enableReview=${enableReview}`)
+                console.log(`==== BEFORE generateWithReview ====`)
+                console.log(`Input imageBuffer size: ${imageBuffer?.byteLength || 0} bytes`)
+                console.log(`Prompt length: ${prompt.length} chars`)
 
                 // Generate with expert review
                 const skipReview = !enableReview
-                const { imageBuffer: generatedImageBuffer, finalReview, attempts } = await ai.generateWithReview(
-                    prompt,
-                    imageBuffer,
-                    maxRetries,
-                    async (status, attempt) => {
-                        await updateStatus(`${status}_ATTEMPT_${attempt}`)
-                    },
-                    skipReview
-                )
+                let generatedImageBuffer: ArrayBuffer | null = null
+                let finalReview: any
+                let attempts: number
+
+                try {
+                    const result = await ai.generateWithReview(
+                        prompt,
+                        imageBuffer,
+                        maxRetries,
+                        async (status, attempt) => {
+                            await updateStatus(`${status}_ATTEMPT_${attempt}`)
+                        },
+                        skipReview
+                    )
+                    generatedImageBuffer = result.imageBuffer
+                    finalReview = result.finalReview
+                    attempts = result.attempts
+                } catch (genError: any) {
+                    console.error('==== generateWithReview THREW ERROR ====')
+                    console.error('Error message:', genError?.message)
+                    console.error('Error stack:', genError?.stack?.split('\n').slice(0, 3).join('\n'))
+                    throw genError
+                }
+
+                console.log(`==== AFTER generateWithReview ====`)
+                console.log(`Output buffer: ${generatedImageBuffer ? `${generatedImageBuffer.byteLength} bytes` : 'NULL'}`)
                 console.log(`Generation complete after ${attempts} attempts`)
 
                 // Validate generated image first
