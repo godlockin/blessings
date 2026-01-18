@@ -73,22 +73,28 @@ export default function MainPage() {
       if (!reader) throw new Error('No reader available');
 
       const decoder = new TextDecoder();
+      let buffer = '';
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        
+        // Keep the last partial line in buffer
+        buffer = lines.pop() || '';
         
         for (const line of lines) {
           if (line.startsWith('event: ')) {
-            const eventType = line.split('\n')[0].replace('event: ', '');
-            const dataStr = line.split('\n')[1]?.replace('data: ', '');
+            const parts = line.split('\n');
+            const eventType = parts[0].replace('event: ', '');
+            const dataStr = parts[1]?.replace('data: ', '');
             
             if (!dataStr) continue;
             
             try {
-              if (dataStr.trim() === "[DONE]") continue; // Handle end of stream signal if present
+              if (dataStr.trim() === "[DONE]") continue;
               
               const data = JSON.parse(dataStr);
               
@@ -103,7 +109,7 @@ export default function MainPage() {
                 throw new Error(data.message);
               }
             } catch (e) {
-              console.error('Error parsing SSE data:', e, dataStr);
+              console.error('Error parsing SSE data:', e);
             }
           }
         }
