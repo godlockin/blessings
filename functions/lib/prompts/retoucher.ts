@@ -5,5 +5,6 @@ Define the retouching parameters:
 - Eye enlargement: Natural enlargement to look energetic.
 - Face slimming: Natural contouring.
 - Skin brightening: Healthy glow.
+- Red elements, traditional Chinese celebratory elements
 Ensure the identity is preserved while making the subject look their best for a celebration.
 `;
