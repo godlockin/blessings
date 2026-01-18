@@ -94,7 +94,10 @@ app.post('/upload', async (c) => {
         const taskId = crypto.randomUUID()
 
         const oss = new OSSService(c.env)
-        const imageBuffer = await image.arrayBuffer()
+        const originalBuffer = await image.arrayBuffer()
+        // CRITICAL: Make a copy of the buffer to ensure it survives after HTTP response returns
+        // Cloudflare Workers may free the original request buffer after response is sent
+        const imageBuffer = originalBuffer.slice(0)
 
         const now = new Date()
         const timeStr = now.toISOString().replace(/[-:T]/g, '').slice(0, 14)
