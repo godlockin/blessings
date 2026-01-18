@@ -64,20 +64,52 @@ export default function MainPage() {
         }),
       });
 
-      // Handle stream or polling here. For now, assume simple response
-      // In a real implementation, we might use Server Sent Events or polling for steps update
-      
-      const data = await response.json();
-      if (data.status === 'completed') {
-        setResult(`data:image/png;base64,${data.result}`);
-        setSteps(steps.map(s => ({ ...s, status: 'completed' })));
-      } else {
-        // Handle error
-        alert(data.message || '处理失败');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Request failed');
       }
-    } catch (error) {
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader available');
+
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            const eventType = line.split('\n')[0].replace('event: ', '');
+            const dataStr = line.split('\n')[1]?.replace('data: ', '');
+            
+            if (!dataStr) continue;
+            
+            try {
+              const data = JSON.parse(dataStr);
+              
+              if (eventType === 'step') {
+                setSteps(prev => prev.map(s => 
+                  s.id === data.id ? { ...s, status: data.status } : s
+                ));
+              } else if (eventType === 'complete') {
+                setResult(`data:image/png;base64,${data.result}`);
+                setSteps(prev => prev.map(s => ({ ...s, status: 'completed' })));
+              } else if (eventType === 'error') {
+                throw new Error(data.message);
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+    } catch (error: any) {
       console.error(error);
-      alert('处理出错');
+      alert(error.message || '处理出错');
+      setSteps(prev => prev.map(s => s.status === 'processing' ? { ...s, status: 'failed' } : s));
     } finally {
       setIsProcessing(false);
     }
