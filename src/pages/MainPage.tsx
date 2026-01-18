@@ -88,6 +88,8 @@ export default function MainPage() {
             if (!dataStr) continue;
             
             try {
+              if (dataStr.trim() === "[DONE]") continue; // Handle end of stream signal if present
+              
               const data = JSON.parse(dataStr);
               
               if (eventType === 'step') {
@@ -101,7 +103,7 @@ export default function MainPage() {
                 throw new Error(data.message);
               }
             } catch (e) {
-              console.error('Error parsing SSE data:', e);
+              console.error('Error parsing SSE data:', e, dataStr);
             }
           }
         }
