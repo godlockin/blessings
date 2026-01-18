@@ -363,7 +363,7 @@ app.get('/debug/test-pollinations', async (c) => {
 // Debug endpoint - test full generateImage flow
 app.get('/debug/test-generate', async (c) => {
     try {
-        const ai = new AIService(c.env.GEMINI_API_KEY)
+        const ai = new AIService(c.env)
         const testPrompt = 'A simple portrait of a person wearing red Chinese clothes, festive background'
 
         console.log('=== DEBUG TEST GENERATE START ===')
@@ -392,7 +392,7 @@ app.get('/debug/test-generate', async (c) => {
 // Debug endpoint - test full generateImage flow with original image
 app.get('/debug/test-generate-with-image', async (c) => {
     try {
-        const ai = new AIService(c.env.GEMINI_API_KEY)
+        const ai = new AIService(c.env)
         const testPrompt = 'A simple portrait of a person wearing red Chinese clothes, festive background'
 
         // Create a simple PNG as test original image (100x100 blue square)
@@ -429,6 +429,63 @@ app.get('/debug/test-generate-with-image', async (c) => {
             success: false,
             error: e.message,
             stack: e.stack?.split('\n').slice(0, 5).join('\n') // first 5 lines of stack
+        }, 500)
+    }
+})
+
+// Debug endpoint - test full generateWithReview flow
+app.get('/debug/test-generate-with-review', async (c) => {
+    try {
+        const ai = new AIService(c.env)
+        const testPrompt = 'Generate a Chinese New Year blessing photo'
+
+        // Create a simple test image (200x200 pink square - person face-like)
+        const pngData = new Uint8Array([
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+            0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE,
+            0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54,
+            0x08, 0xD7, 0x63, 0xF8, 0x0F, 0x00, 0x00, 0x01,
+            0x01, 0x00, 0x18, 0xDD, 0x8D, 0xB4,
+            0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44,
+            0xAE, 0x42, 0x60, 0x82
+        ])
+
+        console.log('=== DEBUG TEST GENERATE WITH REVIEW START ===')
+        console.log('GEMINI_API_KEY length:', c.env.GEMINI_API_KEY?.length || 0)
+        console.log('Test image size:', pngData.length, 'bytes')
+        console.log('ENABLE_REVIEW env:', c.env.ENABLE_REVIEW)
+
+        const skipReview = c.env.ENABLE_REVIEW === 'false'
+        const result = await ai.generateWithReview(
+            testPrompt,
+            pngData.buffer as ArrayBuffer,
+            1, // maxRetries
+            async (status, attempt) => {
+                console.log(`Status update: ${status}, attempt ${attempt}`)
+            },
+            skipReview
+        )
+
+        console.log('=== DEBUG TEST GENERATE WITH REVIEW END ===')
+        console.log('Result imageBuffer:', result.imageBuffer ? `${result.imageBuffer.byteLength} bytes` : 'null')
+        console.log('Result attempts:', result.attempts)
+        console.log('Result approved:', result.finalReview?.approved)
+
+        return c.json({
+            success: true,
+            bufferSize: result.imageBuffer?.byteLength || 0,
+            attempts: result.attempts,
+            approved: result.finalReview?.approved,
+            score: result.finalReview?.overall_score
+        })
+    } catch (e: any) {
+        console.error('Test generateWithReview error:', e)
+        return c.json({
+            success: false,
+            error: e.message,
+            stack: e.stack?.split('\n').slice(0, 5).join('\n')
         }, 500)
     }
 })
