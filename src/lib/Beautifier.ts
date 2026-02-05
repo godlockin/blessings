@@ -8,6 +8,7 @@
 export type AgeGroup = 'child' | 'teenager' | 'young_adult' | 'adult' | 'middle_aged' | 'elderly';
 export type Gender = 'male' | 'female' | 'unknown';
 export type SkinTone = 'fair' | 'light' | 'medium' | 'olive' | 'tan' | 'dark' | 'unknown';
+export type Ethnicity = 'asian' | 'caucasian' | 'african' | 'middle_eastern' | 'mixed' | 'unknown';
 export type FaceShape = 'oval' | 'round' | 'square' | 'heart' | 'long' | 'diamond' | 'unknown';
 export type BeautifyLevel = 'minimal' | 'light' | 'moderate' | 'strong' | 'gentle';
 
@@ -25,6 +26,7 @@ export interface BeautifyContext {
   age: number | undefined;
   gender: Gender;
   skinTone: SkinTone;
+  ethnicity: Ethnicity;
   facialFeatures: FacialFeatures;
   originalAnalysis: string;
 }
@@ -162,6 +164,47 @@ export function detectGender(analysis: string): Gender {
   return 'unknown';
 }
 
+// ==================== 族裔检测 ====================
+
+export function detectEthnicity(analysis: string): Ethnicity {
+  const lowerAnalysis = analysis.toLowerCase();
+  
+  const caucasianKeywords = [
+    'caucasian', 'white', 'european', 'american', 'western', '外国人', '白人',
+    '西方人', '高加索', '金发', '碧眼', '浅色眼睛', 'light eyes', 'blonde',
+    'blue eyes', 'green eyes', 'gray eyes', 'fair hair'
+  ];
+  
+  const africanKeywords = [
+    'african', 'black', 'african american', '黑人', '非裔', '深色皮肤',
+    'dark skin', 'brown skin', 'african american'
+  ];
+  
+  const middleEasternKeywords = [
+    'middle eastern', 'arabic', 'arab', '中东', '阿拉伯', '波斯'
+  ];
+  
+  const asianKeywords = [
+    'asian', 'chinese', 'japanese', 'korean', '东亚', '亚洲人', '中国人',
+    '日本人', '韩国人', '亚裔', '黄种人'
+  ];
+  
+  if (caucasianKeywords.some(k => lowerAnalysis.includes(k))) {
+    return 'caucasian';
+  }
+  if (africanKeywords.some(k => lowerAnalysis.includes(k))) {
+    return 'african';
+  }
+  if (middleEasternKeywords.some(k => lowerAnalysis.includes(k))) {
+    return 'middle_eastern';
+  }
+  if (asianKeywords.some(k => lowerAnalysis.includes(k))) {
+    return 'asian';
+  }
+  
+  return 'unknown';
+}
+
 // ==================== 肤色检测 ====================
 
 export function detectSkinTone(analysis: string): SkinTone {
@@ -268,7 +311,7 @@ export function analyzeFacialFeatures(analysis: string): FacialFeatures {
 
 // ==================== 美颜策略生成 ====================
 
-function getAgeStrategy(ageGroup: AgeGroup, _age?: number): BeautifyStrategy {
+function getAgeStrategy(_ageGroup: AgeGroup): BeautifyStrategy {
   const strategies: Record<AgeGroup, BeautifyStrategy> = {
     child: {
       level: 'minimal',
@@ -364,9 +407,9 @@ function getAgeStrategy(ageGroup: AgeGroup, _age?: number): BeautifyStrategy {
       `.trim()
     }
   };
-  
-  return strategies[ageGroup];
-}
+   
+  return strategies[_ageGroup];
+ }
 
 function getGenderAdjustment(gender: Gender): string {
   if (gender === 'female') {
@@ -387,6 +430,66 @@ function getGenderAdjustment(gender: Gender): string {
     `.trim();
   }
   return '';
+}
+
+function getEthnicityAdjustment(ethnicity: Ethnicity): string {
+  if (ethnicity === 'unknown') {
+    return '';
+  }
+  
+  const ethnicityProfiles: Record<Ethnicity, string> = {
+    caucasian: `
+      Caucasian skin optimization:
+      - Preserve natural skin texture, minimal smoothing
+      - Enhance natural rosy/golden undertones
+      - Keep healthy skin pores visible for realism
+      - Avoid over-whitening, maintain natural complexion
+      - Enhance natural skin radiance and glow
+      - Professional photo look with natural skin details
+    `.trim(),
+    
+    african: `
+      Rich melanin skin optimization:
+      - Enhance deep rich skin tone, maintain warmth
+      - Preserve natural skin texture and pores
+      - Add luminous healthy glow without lighten tone
+      - Keep natural melanin richness and depth
+      - Avoid over-smoothing, maintain authentic texture
+      - Vibrant healthy rich skin appearance
+    `.trim(),
+    
+    middle_eastern: `
+      Mediterranean skin optimization:
+      - Enhance warm olive/golden undertones
+      - Preserve natural skin character and texture
+      - Add healthy radiant sun-kissed glow
+      - Maintain authentic Mediterranean complexion
+      - Avoid excessive smoothing, keep natural look
+      - Warm rich vibrant skin appearance
+    `.trim(),
+    
+    asian: `
+      Asian skin optimization:
+      - Enhance smooth porcelain skin quality
+      - Even out skin tone with natural brightness
+      - Subtle enhancement while keeping authenticity
+      - Healthy luminous glow appropriate for Asian skin
+      - Professional retouching with natural look
+    `.trim(),
+    
+    mixed: `
+      Mixed ethnicity skin optimization:
+      - Blend and enhance natural skin features
+      - Preserve unique mixed skin characteristics
+      - Add healthy balanced glow and radiance
+      - Maintain authentic natural skin texture
+      - Professional natural looking enhancement
+    `.trim(),
+    
+    unknown: ''
+  };
+  
+  return ethnicityProfiles[ethnicity] || '';
 }
 
 function getSkinToneAdjustment(skinTone: SkinTone): string {
@@ -460,6 +563,7 @@ export function analyzeForBeautify(analysis: string): BeautifyContext {
   const { group: ageGroup, age } = detectAgeGroup(analysis);
   const gender = detectGender(analysis);
   const skinTone = detectSkinTone(analysis);
+  const ethnicity = detectEthnicity(analysis);
   const facialFeatures = analyzeFacialFeatures(analysis);
   
   return {
@@ -467,15 +571,17 @@ export function analyzeForBeautify(analysis: string): BeautifyContext {
     age: age ?? undefined,
     gender,
     skinTone,
+    ethnicity,
     facialFeatures,
     originalAnalysis: analysis
   };
 }
 
 export function generateBeautifyPrompt(context: BeautifyContext): string {
-  const ageStrategy = getAgeStrategy(context.ageGroup, context.age);
+  const ageStrategy = getAgeStrategy(context.ageGroup);
   const genderAdjustment = getGenderAdjustment(context.gender);
   const skinToneAdjustment = getSkinToneAdjustment(context.skinTone);
+  const ethnicityAdjustment = getEthnicityAdjustment(context.ethnicity);
   const faceShapeAdjustment = getFaceShapeAdjustment(context.facialFeatures.faceShape);
   const skinIssuesAdjustment = getSkinIssuesAdjustment(context.facialFeatures.skinIssues);
   const specialFeaturesNote = getSpecialFeaturesNote(context.facialFeatures.specialFeatures);
@@ -488,6 +594,9 @@ export function generateBeautifyPrompt(context: BeautifyContext): string {
     '',
     'Gender-specific adjustment:',
     genderAdjustment,
+    '',
+    'Ethnicity-specific optimization:',
+    ethnicityAdjustment,
     '',
     'Skin tone optimization:',
     skinToneAdjustment,
