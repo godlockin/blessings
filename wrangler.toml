@@ -3,36 +3,21 @@ compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 compatibility_flags = ["nodejs_compat"]
 
-# Production security settings
-[env.production]
-vars = { ENVIRONMENT = "production", INVITE_CODE_PLACEHOLDER = "set_via_dashboard_or_env", OSS_REGION_PLACEHOLDER = "set_via_dashboard_or_env", OSS_BUCKET_PLACEHOLDER = "set_via_dashboard_or_env", OSS_ENDPOINT_PLACEHOLDER = "set_via_dashboard_or_env", OSS_PREFIX_PLACEHOLDER = "optional_set_via_dashboard_or_env" }
-
-
+[limits]
+cpu_ms = 50000
 
 [vars]
-# These variables should be set via environment variables or Cloudflare Dashboard
-# Never commit sensitive values to version control
 ENVIRONMENT = "development"
 
-# Configuration placeholders (to be set via secure methods)
-INVITE_CODE_PLACEHOLDER = "set_via_dashboard_or_env"
-OSS_REGION_PLACEHOLDER = "set_via_dashboard_or_env"
-OSS_BUCKET_PLACEHOLDER = "set_via_dashboard_or_env"
-OSS_ENDPOINT_PLACEHOLDER = "set_via_dashboard_or_env"
-OSS_PREFIX_PLACEHOLDER = "optional_set_via_dashboard_or_env"
+[env.production]
+vars = { ENVIRONMENT = "production" }
 
-
-
-# Rate limiting and security configurations
-[limits]
-cpu_ms = 50000  # Increased for image processing
-
-# IMPORTANT: Add secrets using wrangler CLI or Dashboard:
-# wrangler pages secret put GEMINI_API_KEY
-# wrangler pages secret put OSS_ACCESS_KEY_ID
-# wrangler pages secret put OSS_ACCESS_KEY_SECRET
-# wrangler pages secret put INVITE_CODE
-# wrangler pages secret put OSS_REGION
-# wrangler pages secret put OSS_BUCKET
-# wrangler pages secret put OSS_ENDPOINT
-# wrangler pages secret put OSS_PREFIX
+# IMPORTANT: Configure all secrets via Cloudflare Dashboard (Settings > Variables):
+# - GEMINI_API_KEY
+# - INVITE_CODE
+# - OSS_REGION
+# - OSS_ACCESS_KEY_ID
+# - OSS_ACCESS_KEY_SECRET
+# - OSS_BUCKET
+# - OSS_ENDPOINT (optional)
+# - OSS_PREFIX (optional)

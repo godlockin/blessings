@@ -355,7 +355,6 @@ export const onRequestPost = async (context: CloudflareContext) => {
       };
 
       const generatedPrompt = await createRetryableOperation(promptOperation);
-      console.log("Generated Prompt:", generatedPrompt);
       await sendEvent('step', { id: 'prompt', status: 'completed' });
 
       // 5. Generate Image (Expert 4 - The Generator)

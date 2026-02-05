@@ -17,7 +17,6 @@ export default function InvitePage() {
     setLoading(true);
 
     try {
-      // TODO: Call actual API
       const response = await fetch('/api/verify-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
