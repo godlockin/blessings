@@ -7,13 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 [env.production]
 vars = { ENVIRONMENT = "production" }
 
-# Staging environment
-[env.staging]
-vars = { ENVIRONMENT = "staging" }
 
-# Development environment
-[env.development]
-vars = { ENVIRONMENT = "development" }
 
 [vars]
 # These variables should be set via environment variables or Cloudflare Dashboard
