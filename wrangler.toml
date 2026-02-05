@@ -1,6 +1,7 @@
 name = "blessings-img"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
+compatibility_flags = ["nodejs_compat"]
 
 # Production security settings
 [env.production]
@@ -26,9 +27,7 @@ OSS_BUCKET_PLACEHOLDER = "set_via_dashboard_or_env"
 OSS_ENDPOINT_PLACEHOLDER = "set_via_dashboard_or_env"
 OSS_PREFIX_PLACEHOLDER = "optional_set_via_dashboard_or_env"
 
-# Security headers and CORS configuration
-[compatibility_flags]
-nodejs_compat = true
+
 
 # Rate limiting and security configurations
 [limits]
