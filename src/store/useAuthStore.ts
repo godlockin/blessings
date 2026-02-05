@@ -11,46 +11,39 @@ interface AuthState {
   checkSessionValidity: () => boolean;
 }
 
-// Secure storage with encryption simulation
-const secureStorage = {
+// Simple wrapper for storage to handle session expiry logic
+const authStorage = {
   getItem: (name: string): string | null => {
     try {
-      const item = localStorage.getItem(name);
+      const item = sessionStorage.getItem(name);
       if (!item) return null;
       
-      // Basic obfuscation (not encryption for demo)
-      const decoded = atob(item);
-      const parsed = JSON.parse(decoded);
+      const parsed = JSON.parse(item);
       
       // Check if session expired
-      if (parsed.sessionExpiry && Date.now() > parsed.sessionExpiry) {
-        localStorage.removeItem(name);
+      if (parsed.state?.sessionExpiry && Date.now() > parsed.state.sessionExpiry) {
+        sessionStorage.removeItem(name);
         return null;
       }
       
       return item;
     } catch (error) {
       console.warn('Storage access error:', error);
-      localStorage.removeItem(name);
+      sessionStorage.removeItem(name);
       return null;
     }
   },
   
   setItem: (name: string, value: string): void => {
     try {
-      // Add session expiry (24 hours)
-      const parsed = JSON.parse(value);
-      parsed.sessionExpiry = Date.now() + (24 * 60 * 60 * 1000);
-      
-      const obfuscated = btoa(JSON.stringify(parsed));
-      localStorage.setItem(name, obfuscated);
+      sessionStorage.setItem(name, value);
     } catch (error) {
       console.warn('Storage write error:', error);
     }
   },
   
   removeItem: (name: string): void => {
-    localStorage.removeItem(name);
+    sessionStorage.removeItem(name);
   }
 };
 
@@ -96,28 +89,12 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false, 
           sessionExpiry: null 
         });
-        
-        // Clear any additional sensitive data
-        try {
-          localStorage.removeItem('auth-storage');
-          // Clear any potential cached data
-          if ('caches' in window) {
-            caches.keys().then(names => {
-              names.forEach(name => {
-                if (name.includes('auth') || name.includes('session')) {
-                  caches.delete(name);
-                }
-              });
-            });
-          }
-        } catch (error) {
-          console.warn('Cache cleanup error:', error);
-        }
+        sessionStorage.removeItem('auth-storage');
       },
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => secureStorage),
+      storage: createJSONStorage(() => authStorage),
       partialize: (state) => ({
         inviteCode: state.inviteCode,
         isAuthenticated: state.isAuthenticated,
