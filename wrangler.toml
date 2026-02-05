@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # Production security settings
 [env.production]
-vars = { ENVIRONMENT = "production" }
+vars = { ENVIRONMENT = "production", INVITE_CODE_PLACEHOLDER = "set_via_dashboard_or_env", OSS_REGION_PLACEHOLDER = "set_via_dashboard_or_env", OSS_BUCKET_PLACEHOLDER = "set_via_dashboard_or_env", OSS_ENDPOINT_PLACEHOLDER = "set_via_dashboard_or_env", OSS_PREFIX_PLACEHOLDER = "optional_set_via_dashboard_or_env" }
 
 
 
