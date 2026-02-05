@@ -2,11 +2,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import InvitePage from "@/pages/InvitePage";
 import MainPage from "@/pages/MainPage";
 import { useAuthStore } from "@/store/useAuthStore";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuthStore();
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
@@ -16,19 +17,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<InvitePage />} />
-        <Route 
-          path="/app" 
-          element={
-            <ProtectedRoute>
-              <MainPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          <Route path="/" element={<InvitePage />} />
+          <Route
+            path="/app"
+            element={
+              <ProtectedRoute>
+                <MainPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </ErrorBoundary>
   );
 }

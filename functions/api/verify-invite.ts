@@ -1,10 +1,19 @@
-interface Env {
-  INVITE_CODE: string;
+interface CloudflareContext {
+  request: {
+    json: () => Promise<unknown>;
+    cf?: Record<string, unknown>;
+  };
+  env: {
+    INVITE_CODE: string;
+  };
+  params: Record<string, string>;
+  waitUntil: (promise: Promise<void>) => void;
+  passThroughOnException: () => void;
 }
 
-export const onRequestPost: PagesFunction<Env> = async (context) => {
+export const onRequestPost = async (context: CloudflareContext) => {
   const { request, env } = context;
-  
+
   try {
     const body = await request.json() as { inviteCode: string };
     
@@ -24,9 +33,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     
     return new Response(JSON.stringify({ valid: false, message: 'Invalid invite code' }), {
       headers: { 'Content-Type': 'application/json' },
-      status: 200 // Return 200 with valid: false to handle gracefully in frontend
+      status: 200
     });
-  } catch (err) {
+  } catch {
     return new Response(JSON.stringify({ valid: false, message: 'Server error' }), {
       headers: { 'Content-Type': 'application/json' },
       status: 500

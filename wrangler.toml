@@ -2,15 +2,44 @@ name = "blessings-img"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
-[vars]
-# These variables can be set in the Cloudflare Dashboard
-# or in .dev.vars for local development
-INVITE_CODE = ""
-OSS_REGION = ""
-OSS_BUCKET = ""
-OSS_ENDPOINT = ""
-OSS_PREFIX = ""
+# Production security settings
+[env.production]
+vars = { ENVIRONMENT = "production" }
 
-# Note: Secrets like GEMINI_API_KEY, OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET 
-# should be added via `wrangler pages secret put` or in the dashboard, 
-# NOT in this file.
+# Staging environment
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
+
+# Development environment
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+[vars]
+# These variables should be set via environment variables or Cloudflare Dashboard
+# Never commit sensitive values to version control
+ENVIRONMENT = "development"
+
+# Configuration placeholders (to be set via secure methods)
+INVITE_CODE_PLACEHOLDER = "set_via_dashboard_or_env"
+OSS_REGION_PLACEHOLDER = "set_via_dashboard_or_env"
+OSS_BUCKET_PLACEHOLDER = "set_via_dashboard_or_env"
+OSS_ENDPOINT_PLACEHOLDER = "set_via_dashboard_or_env"
+OSS_PREFIX_PLACEHOLDER = "optional_set_via_dashboard_or_env"
+
+# Security headers and CORS configuration
+[compatibility_flags]
+nodejs_compat = true
+
+# Rate limiting and security configurations
+[limits]
+cpu_ms = 50000  # Increased for image processing
+
+# IMPORTANT: Add secrets using wrangler CLI or Dashboard:
+# wrangler pages secret put GEMINI_API_KEY
+# wrangler pages secret put OSS_ACCESS_KEY_ID
+# wrangler pages secret put OSS_ACCESS_KEY_SECRET
+# wrangler pages secret put INVITE_CODE
+# wrangler pages secret put OSS_REGION
+# wrangler pages secret put OSS_BUCKET
+# wrangler pages secret put OSS_ENDPOINT
+# wrangler pages secret put OSS_PREFIX

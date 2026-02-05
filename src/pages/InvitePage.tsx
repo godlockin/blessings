@@ -23,13 +23,17 @@ export default function InvitePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteCode: code }),
       });
-      
+
+      if (!response.ok) {
+        throw new Error(`服务器连接失败 (${response.status})。请确保已使用 npm run start:dev 启动项目。`);
+      }
+
       let data;
       try {
         data = await response.json();
       } catch (parseError) {
         console.error('JSON Parse Error:', parseError);
-        throw new Error('Server response was not valid JSON');
+        throw new Error('服务器响应格式错误');
       }
 
       if (data.valid) {
@@ -55,7 +59,7 @@ export default function InvitePage() {
             <Lock className="w-8 h-8 text-china-red" />
           </div>
         </div>
-        
+
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
           新年祝福生成器
         </h1>
@@ -72,8 +76,8 @@ export default function InvitePage() {
               placeholder="请输入邀请码"
               className={clsx(
                 "w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 transition-colors",
-                error 
-                  ? "border-red-500 focus:ring-red-200" 
+                error
+                  ? "border-red-500 focus:ring-red-200"
                   : "border-gray-200 focus:border-china-red focus:ring-china-red/20"
               )}
             />

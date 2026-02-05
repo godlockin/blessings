@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 sys_init/*
+.dev.vars
+.npm-cache/
+coverage/
