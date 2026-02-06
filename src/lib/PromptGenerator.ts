@@ -9,36 +9,52 @@ export class PromptGenerator {
   }
 
   async generate(analysisText: string): Promise<string> {
-    // 智能美颜分析 - 获取完整的美颜上下文
     const { context, prompt: beautifyPrompt } = beautify(analysisText);
     
-    // 根据年龄组调整美颜说明
     const ageGroupDescription: Record<AgeGroup, string> = {
       child: '儿童（保持天真可爱）',
       teenager: '青少年（保持青春活力）',
-      young_adult: '青年人（大眼瘦脸，完美妆容）',
-      adult: '成年人（去皱纹，紧致肌肤）',
-      middle_aged: '中年人（减龄美颜，保持尊严）',
-      elderly: '老年人（温和美颜，健康气色）'
+      young_adult: '青年女性（精致美颜）',
+      adult: '成年女性（减龄8岁）',
+      middle_aged: '中年女性（减龄10岁）',
+      elderly: '老年女性（温和美颜）'
     };
 
-    // 构建美颜信息摘要
     const beautifyInfo = this.buildBeautifyInfo(context);
+
+    const isAsianFemale = context.ethnicity === 'asian' && context.gender === 'female';
+    const youthTarget = isAsianFemale && (context.ageGroup === 'adult' || context.ageGroup === 'middle_aged') 
+      ? '目标：看起来年轻8-10岁' 
+      : '';
 
     const prompt = `你是一个Prompt专家。根据以下人物特征，生成一个用于生成中国新年祝福照片的英文Prompt。
     人物特征：${analysisText}
     年龄组：${ageGroupDescription[context.ageGroup]}
     美颜配置：${beautifyInfo}
+    ${youthTarget}
     
-    要求：
-    1. 保持人物主要特征（如性别、年龄、族裔特点），确保人物具有高辨识度，亲友能认出是本人。
-    2. **智能美颜**（非常重要）：${beautifyPrompt}
-    3. 背景为中国新年氛围（红色、灯笼、烟花等）。
-    4. 人物穿着喜庆的中国传统服饰或现代红色系服饰。
-    5. 动作：双手抱拳作揖（中国传统拜年姿势），保持全身构图。
-    6. 风格：**iPhone 16 Pro Max 真实摄影风格** - 保留皮肤纹理和毛孔细节，不过度磨皮；自然真实的光影过渡，智能HDR高光处理；色彩真实自然，白平衡准确；景深效果自然，主体清晰背景虚化适中；整体效果要像用手机近距离实拍的，真实自然有生活感，不要过度美颜或塑料感。
+    核心要求（必须严格遵守）：
+    1. **真实感第一**：照片必须看起来完全像是用 iPhone 16 Pro Max 在自然光线下拍摄的真实照片
+    2. **真实摄影特征**：保留皮肤毛孔纹理、自然肤色过渡、真实光影效果、自然的眼神光
+    3. **自然美化**：比原图好看 - 肤色更均匀、痘印瑕疵减少、气色更好、眼睛更有神
+    4. **禁止塑料感**：不要过度磨皮、不要假白、不要像AI生成的虚假感
+    5. **保持辨识度**：能看出是同一个人，保留面部独特特征（痣、独特轮廓等）
     
-    注意：美颜要自然适度，在提升颜值的同时必须保证能看出是本人，特别是外国人要保持其真实肤质特点（深色/浅色皮肤的自然质感），不要把外国人美颜成亚洲人风格。保持专业摄影品质的同时追求真实感。
+    智能美颜：${beautifyPrompt}
+    
+    场景：背景为中国新年氛围（红色、灯笼、烟花等）
+    服饰：喜庆的中国传统服饰或现代红色系服饰
+    动作：双手抱拳作揖（中国传统拜年姿势），全身构图
+    
+    风格：iPhone 16 Pro Max 真实摄影风格
+    - 保留皮肤纹理和毛孔细节（真实感的关键）
+    - 自然真实的光影过渡，智能HDR高光处理
+    - 准确的白平衡和自然的色彩还原
+    - 景深效果自然，主体清晰背景虚化适中
+    - 整体效果像手机近距离实拍，有生活感和真实感
+    
+    ${isAsianFemale ? '针对亚洲女性：提亮肤色、瘦脸、大眼、磨皮除皱，但必须保持真实皮肤质感。' : ''}
+    
     请只输出英文Prompt内容，不要包含其他解释。`;
 
     return this.client.generateContent(prompt);

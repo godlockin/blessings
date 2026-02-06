@@ -16,7 +16,9 @@ export interface FacialFeatures {
   faceShape: FaceShape;
   eyeSize: 'small' | 'medium' | 'large' | 'unknown';
   skinIssues: SkinIssue[];
-  specialFeatures: string[]; // 痣、酒窝、眼镜、胡须等
+  specialFeatures: string[];
+  skinTexture: 'smooth' | 'moderate' | 'rough' | 'unknown';
+  eyelidType: 'single' | 'double' | 'hooded' | 'unknown';
 }
 
 export type SkinIssue = 'acne' | 'wrinkles' | 'spots' | 'dark_circles' | 'pores' | 'oily' | 'dry';
@@ -236,12 +238,12 @@ export function analyzeFacialFeatures(analysis: string): FacialFeatures {
   
   // 脸型检测
   const faceShapeKeywords: Record<FaceShape, string[]> = {
-    oval: ['oval face', '鹅蛋脸', 'oval-shaped'],
-    round: ['round face', '圆脸', 'full face', '胖脸'],
-    square: ['square face', '方脸', 'square jaw', '国字脸'],
-    heart: ['heart-shaped face', '心形脸', 'heart face', 'triangle face'],
-    long: ['long face', '长脸', 'oval-long', 'oblong'],
-    diamond: ['diamond face', '菱形脸', 'diamond-shaped'],
+    oval: ['oval face', '鹅蛋脸', 'oval-shaped', '瓜子脸'],
+    round: ['round face', '圆脸', 'full face', '胖脸', '娃娃脸'],
+    square: ['square face', '方脸', 'square jaw', '国字脸', '骨骼感明显'],
+    heart: ['heart-shaped face', '心形脸', 'heart face', 'triangle face', '上宽下窄'],
+    long: ['long face', '长脸', 'oblong', '中庭偏长'],
+    diamond: ['diamond face', '菱形脸', 'diamond-shaped', '颧骨突出'],
     unknown: []
   };
   
@@ -255,9 +257,9 @@ export function analyzeFacialFeatures(analysis: string): FacialFeatures {
   
   // 眼睛大小检测
   const eyeSizeKeywords = {
-    small: ['small eyes', '小眼睛', 'narrow eyes'],
-    large: ['big eyes', 'large eyes', '大眼睛', 'bright eyes'],
-    medium: ['medium eyes']
+    small: ['small eyes', '小眼睛', 'narrow eyes', '眼睛偏小', '眼裂较小'],
+    large: ['big eyes', 'large eyes', '大眼睛', 'bright eyes', '眼睛大而有神'],
+    medium: ['medium eyes', 'normal eyes', '眼睛适中', 'normal size']
   };
   
   let eyeSize: FacialFeatures['eyeSize'] = 'unknown';
@@ -265,16 +267,32 @@ export function analyzeFacialFeatures(analysis: string): FacialFeatures {
   else if (eyeSizeKeywords.large.some(k => lowerAnalysis.includes(k))) eyeSize = 'large';
   else eyeSize = 'medium';
   
+  // 眼皮类型检测（针对亚洲女性）
+  const eyelidKeywords = {
+    single: ['单眼皮', 'single eyelid', '内双不明显'],
+    double: ['双眼皮', 'double eyelid', '明显双眼褶'],
+    hooded: ['肿眼泡', 'hooded eyes', '眼皮脂肪厚'],
+    unknown: []
+  };
+  
+  let eyelidType: FacialFeatures['eyelidType'] = 'unknown';
+  for (const [type, keywords] of Object.entries(eyelidKeywords)) {
+    if (type !== 'unknown' && keywords.some(k => lowerAnalysis.includes(k))) {
+      eyelidType = type as FacialFeatures['eyelidType'];
+      break;
+    }
+  }
+  
   // 皮肤问题检测
   const skinIssues: SkinIssue[] = [];
   const issueKeywords: Record<SkinIssue, string[]> = {
-    acne: ['acne', 'pimple', '痘痘', '青春痘', '粉刺'],
-    wrinkles: ['wrinkles', 'lines', '皱纹', '细纹', '法令纹', '鱼尾纹'],
-    spots: ['spots', 'freckles', 'moles', '斑点', '雀斑', '痣'],
-    dark_circles: ['dark circles', 'bags under eyes', '黑眼圈', '眼袋'],
-    pores: ['large pores', 'pores', '毛孔粗大'],
-    oily: ['oily skin', '油性皮肤', '油光'],
-    dry: ['dry skin', '干性皮肤', '干燥']
+    acne: ['acne', 'pimple', '痘痘', '青春痘', '粉刺', '痘印'],
+    wrinkles: ['wrinkles', 'lines', '皱纹', '细纹', '法令纹', '鱼尾纹', '抬头纹', '颈纹', '初老'],
+    spots: ['spots', 'freckles', 'moles', '斑点', '雀斑', '痣', '色斑', '晒斑'],
+    dark_circles: ['dark circles', 'bags under eyes', '黑眼圈', '眼袋', '泪沟'],
+    pores: ['large pores', 'pores', '毛孔粗大', '毛孔明显'],
+    oily: ['oily skin', '油性皮肤', '油光', 't区出油'],
+    dry: ['dry skin', '干性皮肤', '干燥', '起皮', '卡粉']
   };
   
   for (const [issue, keywords] of Object.entries(issueKeywords)) {
@@ -283,9 +301,19 @@ export function analyzeFacialFeatures(analysis: string): FacialFeatures {
     }
   }
   
+  // 皮肤质感检测
+  let skinTexture: FacialFeatures['skinTexture'] = 'unknown';
+  if (lowerAnalysis.includes('皮肤好') || lowerAnalysis.includes('肤质好') || lowerAnalysis.includes('细腻')) {
+    skinTexture = 'smooth';
+  } else if (lowerAnalysis.includes('毛孔') || lowerAnalysis.includes('粗糙') || lowerAnalysis.includes('痘')) {
+    skinTexture = 'rough';
+  } else if (lowerAnalysis.includes('一般') || lowerAnalysis.includes('普通')) {
+    skinTexture = 'moderate';
+  }
+  
   // 特殊特征
   const specialFeatures: string[] = [];
-  if (lowerAnalysis.includes('glasses') || lowerAnalysis.includes('眼镜')) {
+  if (lowerAnalysis.includes('glasses') || lowerAnalysis.includes('眼镜') || lowerAnalysis.includes('戴眼镜')) {
     specialFeatures.push('glasses');
   }
   if (lowerAnalysis.includes('beard') || lowerAnalysis.includes('胡子') || lowerAnalysis.includes('胡须')) {
@@ -300,197 +328,188 @@ export function analyzeFacialFeatures(analysis: string): FacialFeatures {
   if (lowerAnalysis.includes('scar') || lowerAnalysis.includes('疤痕')) {
     specialFeatures.push('scar');
   }
+  if (lowerAnalysis.includes('法令纹') || lowerAnalysis.includes('嘴角纹')) {
+    specialFeatures.push('smile lines');
+  }
   
   return {
     faceShape,
     eyeSize,
+    eyelidType,
     skinIssues,
+    skinTexture,
     specialFeatures
   };
 }
 
 // ==================== 美颜策略生成 ====================
 
-function getAgeStrategy(_ageGroup: AgeGroup): BeautifyStrategy {
-  const strategies: Record<AgeGroup, BeautifyStrategy> = {
-    child: {
-      level: 'minimal',
-      focus: ['soft lighting', 'healthy glow', 'natural innocence', 'rosy cheeks'],
-      avoid: ['heavy retouching', 'adult features', 'over-smoothing'],
-      prompt: `
-        Gentle child-friendly enhancements:
-        - Soft natural lighting, rosy healthy cheeks
-        - Clear bright eyes full of innocence and wonder
-        - Smooth baby-soft skin maintaining natural texture
-        - Keep adorable childlike appearance and charm
-        - Preserve all natural features and expressions
-        - Healthy vibrant youthful glow
-      `.trim()
-    },
-    
-    teenager: {
-      level: 'light',
-      focus: ['clear skin', 'bright eyes', 'fresh look', 'energy'],
-      avoid: ['heavy makeup', 'adult features', 'over-processing'],
-      prompt: `
-        Youthful natural enhancements:
-        - Bright clear eyes with natural spark and vitality
-        - Smooth skin reducing acne, blemishes, and imperfections
-        - Fresh and energetic youthful appearance
-        - Natural healthy glowing complexion
-        - Preserve unique teenage characteristics
-        - Clean and vibrant look without heavy processing
-      `.trim()
-    },
-    
-    young_adult: {
-      level: 'moderate',
-      focus: ['big eyes', 'slim face', 'smooth skin', 'perfect complexion'],
-      avoid: ['over-smoothing', 'loss of identity', 'unnatural features'],
-      prompt: `
-        Beauty enhancement for young adult:
-        - Big bright sparkling eyes with natural makeup effect
-        - Slim V-shaped face with refined jawline
-        - Smooth flawless skin, minimize fine lines and pores
-        - Rosy healthy radiant complexion
-        - Well-proportioned harmonious facial features
-        - Camera-ready polished look while keeping natural beauty
-        - Maintain recognizable identity and character
-      `.trim()
-    },
-    
-    adult: {
-      level: 'strong',
-      focus: ['wrinkle reduction', 'face lifting', 'youthful glow', 'confidence'],
-      avoid: ['over-smoothing', 'loss of character', 'unnatural youth'],
-      prompt: `
-        Age-defying enhancement for adult:
-        - Lifted brighter eye area, reduce crow's feet and under-eye lines
-        - Slimmer defined face contour, reduce sagging and puffiness
-        - Smooth skin minimizing age spots, wrinkles, and imperfections
-        - Youthful radiant healthy glow
-        - Refreshed energetic confident appearance
-        - Maintain wisdom, maturity and natural character
-        - Look 5-10 years younger while staying recognizable
-      `.trim()
-    },
-    
-    middle_aged: {
-      level: 'strong',
-      focus: ['wrinkle softening', 'skin tightening', 'color correction', 'dignity'],
-      avoid: ['over-youthening', 'loss of dignity', 'plastic look'],
-      prompt: `
-        Mature elegance enhancement:
-        - Gentle softening of deep wrinkles and expression lines
-        - Subtle face lift reducing sagging while keeping character
-        - Natural healthy color restoration, rosy dignified glow
-        - Smooth skin maintaining natural texture
-        - Refined elegant appearance reflecting inner confidence
-        - Look rejuvenated while embracing mature beauty
-        - Keep life experience and wisdom visible in the face
-      `.trim()
-    },
-    
-    elderly: {
-      level: 'gentle',
-      focus: ['gentle smoothing', 'color enhancement', 'dignified look', 'warmth'],
-      avoid: ['aggressive retouching', 'over-youthening', 'loss of identity'],
-      prompt: `
-        Dignified graceful enhancement for senior:
-        - Gentle softening of deep age lines while keeping character
-        - Natural healthy warm color restoration
-        - Subtle lift maintaining natural face shape
-        - Dignified graceful wise appearance
-        - Warm approachable friendly expression
-        - Keep natural age marks with elegance and respect
-        - Look well-maintained and healthy while honoring age
-      `.trim()
-    }
-  };
-   
-  return strategies[_ageGroup];
- }
+// ==================== 亚洲女性专项美颜策略 ====================
 
-function getGenderAdjustment(gender: Gender): string {
-  if (gender === 'female') {
-    return `
-      Feminine beauty touches:
-      - Soft delicate graceful features
-      - Natural subtle makeup effect (eyeliner, light lipstick)
-      - Elegant refined feminine appearance
-      - Gentle and approachable feminine charm
-    `.trim();
-  } else if (gender === 'male') {
-    return `
-      Masculine refinement:
-      - Strong defined jawline and facial structure
-      - Clean masculine features without softening
-      - No makeup appearance, natural strong look
-      - Confident masculine presence and character
-    `.trim();
-  }
-  return '';
+interface AsianFemaleStrategy {
+  level: BeautifyLevel;
+  brightness: 'enhanced' | 'moderate' | 'subtle';
+  faceSlimming: 'strong' | 'moderate' | 'subtle';
+  eyeEnlargement: 'significant' | 'moderate' | 'subtle';
+  skinSmoothing: 'aggressive' | 'moderate' | 'gentle';
+  wrinkleRemoval: 'deep' | 'moderate' | 'gentle';
+  youthFactor: number;
+  prompt: string;
 }
 
-function getEthnicityAdjustment(ethnicity: Ethnicity): string {
-  if (ethnicity === 'unknown') {
-    return '';
+const ASIAN_FEMALE_STRATEGIES: Record<AgeGroup, AsianFemaleStrategy> = {
+  child: {
+    level: 'minimal',
+    brightness: 'subtle',
+    faceSlimming: 'subtle',
+    eyeEnlargement: 'subtle',
+    skinSmoothing: 'gentle',
+    wrinkleRemoval: 'gentle',
+    youthFactor: 0,
+    prompt: `
+      Gentle child beautification:
+      - Natural soft lighting with healthy rosy glow
+      - Bright innocent eyes full of wonder
+      - Smooth baby skin maintaining natural texture
+      - Keep adorable childlike charm
+      - Preserve all natural features
+    `.trim()
+  },
+  
+  teenager: {
+    level: 'light',
+    brightness: 'moderate',
+    faceSlimming: 'subtle',
+    eyeEnlargement: 'moderate',
+    skinSmoothing: 'gentle',
+    wrinkleRemoval: 'gentle',
+    youthFactor: 0,
+    prompt: `
+      Youthful teen enhancement:
+      - Bright clear skin with natural radiance
+      - Slightly enlarged expressive eyes with sparkle
+      - Fresh energetic appearance
+      - Natural healthy glow
+      - Preserve youthful features
+    `.trim()
+  },
+  
+  young_adult: {
+    level: 'moderate',
+    brightness: 'enhanced',
+    faceSlimming: 'moderate',
+    eyeEnlargement: 'moderate',
+    skinSmoothing: 'moderate',
+    wrinkleRemoval: 'gentle',
+    youthFactor: 0,
+    prompt: `
+      Beauty enhancement for young Asian woman:
+      - Bright luminous complexion with even skin tone
+      - Defined V-line jaw, slim refined face shape
+      - Bigger brighter eyes with natural makeup effect
+      - Smooth porcelain-like skin, refined pores
+      - Youthful vibrant appearance
+      - Camera-ready polished look
+    `.trim()
+  },
+  
+  adult: {
+    level: 'strong',
+    brightness: 'enhanced',
+    faceSlimming: 'strong',
+    eyeEnlargement: 'significant',
+    skinSmoothing: 'aggressive',
+    wrinkleRemoval: 'deep',
+    youthFactor: 8,
+    prompt: `
+      **Ultimate Asian Female Beautification - 8 years younger:**
+      
+      1. BRIGHTENING & SKIN TONE:
+      - Radiant luminous skin with even porcelain complexion
+      - Brightened overall tone, eliminate dullness
+      - Healthy pinkish glow, avoid over-whitening
+      
+      2. FACE SLIMMING & CONTOURING:
+      - Pronounced V-line jaw, significantly slimmed face
+      - Defined cheekbones, reduced face width
+      - Elongated elegant facial proportions
+      
+      3. EYE ENLARGEMENT:
+      - Significantly larger bright sparkling eyes
+      - Enhanced eye shape, lifted outer corners
+      - Brighter eye whites, reduced dark circles
+      - Defined eyes with natural-looking effect
+      
+      4. SKIN SMOOTHING & WRINKLE REMOVAL:
+      - Deep pore minimization, porcelain skin texture
+      - Complete wrinkle erasure (forehead, crow's feet, nasolabial)
+      - Tightened facial contours, reduced sagging
+      - Smooth baby-face skin quality
+      
+      5. OVERALL YOUTH EFFECT:
+      - Look 8-10 years younger
+      - Refined delicate features
+      - Fresh youthful vitality
+    `.trim()
+  },
+  
+  middle_aged: {
+    level: 'strong',
+    brightness: 'enhanced',
+    faceSlimming: 'moderate',
+    eyeEnlargement: 'significant',
+    skinSmoothing: 'aggressive',
+    wrinkleRemoval: 'deep',
+    youthFactor: 10,
+    prompt: `
+      **Rejuvenating Asian Female Enhancement - 10 years younger:**
+      
+      1. SKIN BRIGHTENING:
+      - Brightened luminous complexion
+      - Even skin tone, reduced age spots
+      - Healthy rosy undertones
+      
+      2. FACE SLIMMING:
+      - Refined V-line jaw
+      - Lifted cheekbones
+      - Youthful facial contours
+      
+      3. EYE ENHANCEMENT:
+      - Larger expressive eyes
+      - Lifted eye area, reduced crow's feet
+      - Brightened under-eye, minimized dark circles
+      
+      4. SKIN RENEWAL:
+      - Deep wrinkle removal
+      - Smooth refined skin texture
+      - Tightened youthful appearance
+      
+      5. YOUTH RESTORATION:
+      - Look 10 years younger
+      - Elegant mature beauty preserved
+      - Confident sophisticated appearance
+    `.trim()
+  },
+  
+  elderly: {
+    level: 'gentle',
+    brightness: 'moderate',
+    faceSlimming: 'subtle',
+    eyeEnlargement: 'moderate',
+    skinSmoothing: 'moderate',
+    wrinkleRemoval: 'moderate',
+    youthFactor: 8,
+    prompt: `
+      Dignified enhancement for senior Asian woman:
+      - Healthy warm skin tone with natural brightness
+      - Gently smoothed lines while preserving dignity
+      - Softened facial contours
+      - Warm approachable expression
+      - Graceful elegant appearance
+      - Look well-maintained and vibrant
+    `.trim()
   }
-  
-  const ethnicityProfiles: Record<Ethnicity, string> = {
-    caucasian: `
-      Caucasian skin optimization:
-      - Preserve natural skin texture, minimal smoothing
-      - Enhance natural rosy/golden undertones
-      - Keep healthy skin pores visible for realism
-      - Avoid over-whitening, maintain natural complexion
-      - Enhance natural skin radiance and glow
-      - Professional photo look with natural skin details
-    `.trim(),
-    
-    african: `
-      Rich melanin skin optimization:
-      - Enhance deep rich skin tone, maintain warmth
-      - Preserve natural skin texture and pores
-      - Add luminous healthy glow without lighten tone
-      - Keep natural melanin richness and depth
-      - Avoid over-smoothing, maintain authentic texture
-      - Vibrant healthy rich skin appearance
-    `.trim(),
-    
-    middle_eastern: `
-      Mediterranean skin optimization:
-      - Enhance warm olive/golden undertones
-      - Preserve natural skin character and texture
-      - Add healthy radiant sun-kissed glow
-      - Maintain authentic Mediterranean complexion
-      - Avoid excessive smoothing, keep natural look
-      - Warm rich vibrant skin appearance
-    `.trim(),
-    
-    asian: `
-      Asian skin optimization:
-      - Enhance smooth porcelain skin quality
-      - Even out skin tone with natural brightness
-      - Subtle enhancement while keeping authenticity
-      - Healthy luminous glow appropriate for Asian skin
-      - Professional retouching with natural look
-    `.trim(),
-    
-    mixed: `
-      Mixed ethnicity skin optimization:
-      - Blend and enhance natural skin features
-      - Preserve unique mixed skin characteristics
-      - Add healthy balanced glow and radiance
-      - Maintain authentic natural skin texture
-      - Professional natural looking enhancement
-    `.trim(),
-    
-    unknown: ''
-  };
-  
-  return ethnicityProfiles[ethnicity] || '';
-}
+};
 
 function getSkinToneAdjustment(skinTone: SkinTone): string {
   const adjustments: Record<SkinTone, string> = {
@@ -538,11 +557,12 @@ function getSpecialFeaturesNote(features: string[]): string {
   if (features.length === 0) return '';
   
   const notes: Record<string, string> = {
-    glasses: 'Keep glasses style, reduce glare, enhance eyes behind frames',
+    glasses: 'Keep glasses style, reduce glare, enhance eyes behind frames, make eyes appear larger',
     beard: 'Groom and shape beard naturally, keep masculine character',
     dimples: 'Preserve cute dimples when smiling',
     mole: 'Keep distinctive mole as identity feature',
-    scar: 'Minimize visible scars while keeping natural'
+    scar: 'Minimize visible scars while keeping natural',
+    'smile lines': 'Gently soften smile lines (nasolabial folds) while preserving natural expression'
   };
   
   const relevantNotes = features
@@ -578,50 +598,104 @@ export function analyzeForBeautify(analysis: string): BeautifyContext {
 }
 
 export function generateBeautifyPrompt(context: BeautifyContext): string {
-  const ageStrategy = getAgeStrategy(context.ageGroup);
-  const genderAdjustment = getGenderAdjustment(context.gender);
+  const isAsianFemale = context.ethnicity === 'asian' && context.gender === 'female';
+  const asianFemaleStrategy = isAsianFemale ? ASIAN_FEMALE_STRATEGIES[context.ageGroup] : null;
+  
   const skinToneAdjustment = getSkinToneAdjustment(context.skinTone);
-  const ethnicityAdjustment = getEthnicityAdjustment(context.ethnicity);
   const faceShapeAdjustment = getFaceShapeAdjustment(context.facialFeatures.faceShape);
   const skinIssuesAdjustment = getSkinIssuesAdjustment(context.facialFeatures.skinIssues);
   const specialFeaturesNote = getSpecialFeaturesNote(context.facialFeatures.specialFeatures);
   
-  const parts = [
-    '// === Professional Photo Beautification ===',
-    '',
-    'Base enhancement:',
-    ageStrategy.prompt,
-    '',
-    'Gender-specific adjustment:',
-    genderAdjustment,
-    '',
-    'Ethnicity-specific optimization:',
-    ethnicityAdjustment,
-    '',
-    'Skin tone optimization:',
-    skinToneAdjustment,
-    '',
-    'Face shape enhancement:',
-    faceShapeAdjustment,
-    '',
-    'Skin quality improvement:',
-    skinIssuesAdjustment,
-    ''
-  ];
+  let parts: string[];
   
-  if (specialFeaturesNote) {
-    parts.push('', specialFeaturesNote);
+  if (asianFemaleStrategy) {
+    parts = [
+      '// === Asian Female Professional Beautification ===',
+      '',
+      asianFemaleStrategy.prompt,
+      '',
+      'Skin tone optimization:',
+      skinToneAdjustment,
+      '',
+      'Face shape enhancement:',
+      faceShapeAdjustment,
+      '',
+      'Skin quality improvement:',
+      skinIssuesAdjustment,
+      ''
+    ];
+    
+    if (specialFeaturesNote) {
+      parts.push('', specialFeaturesNote);
+    }
+    
+    parts.push(
+      '',
+      '// === iPhone Real Photo Quality Requirements ===',
+      '- Must look like a real iPhone 16 Pro Max photo taken in natural lighting',
+      '- Keep natural skin texture and visible pores (key to realism)',
+      '- Preserve authentic skin tones with natural color transitions',
+      '- Include natural catchlights in eyes (realistic eye sparkle)',
+      '- Realistic shadow transitions, no artificial smoothness',
+      '- No plastic or overly processed appearance',
+      '- No excessive whitening or unrealistic skin',
+      '- Natural looking enhancements only - look better but real',
+      '',
+      '// === Quality Guarantees ===',
+      '- Maintain original identity: must be recognizable as the same person',
+      '- Natural-looking results: no over-processing or artificial appearance',
+      '- Preserve unique characteristics: moles, dimples, scars, distinctive features',
+      `- Beautification level: ${isAsianFemale ? asianFemaleStrategy?.level : ASIAN_FEMALE_STRATEGIES[context.ageGroup].level}`
+    );
+  } else {
+    parts = [
+      '// === Professional Photo Beautification ===',
+      '',
+      ASIAN_FEMALE_STRATEGIES[context.ageGroup].prompt,
+      '',
+      'Gender adjustment:',
+      context.gender === 'female' 
+        ? 'Feminine beauty touches: soft delicate features, natural subtle makeup'
+        : 'Masculine refinement: strong defined features, clean natural look',
+      '',
+      'Ethnicity optimization:',
+      context.ethnicity === 'caucasian'
+        ? 'Preserve natural skin texture, enhance rosy undertones'
+        : context.ethnicity === 'african'
+        ? 'Enhance rich skin tone, maintain warmth and depth'
+        : 'Natural skin optimization maintaining authentic characteristics',
+      '',
+      'Skin tone:',
+      skinToneAdjustment,
+      '',
+      'Face shape:',
+      faceShapeAdjustment,
+      '',
+      'Skin quality:',
+      skinIssuesAdjustment,
+      ''
+    ];
+    
+    if (specialFeaturesNote) {
+      parts.push('', specialFeaturesNote);
+    }
+    
+    parts.push(
+      '',
+      '// === iPhone Real Photo Quality Requirements ===',
+      '- Must look like a real iPhone 16 Pro Max photo taken in natural lighting',
+      '- Keep natural skin texture and visible pores (key to realism)',
+      '- Preserve authentic skin tones with natural color transitions',
+      '- Include natural catchlights in eyes (realistic eye sparkle)',
+      '- Realistic shadow transitions, no artificial smoothness',
+      '- No plastic or overly processed appearance',
+      '- Natural looking enhancements only - look better but real',
+      '',
+      '// === Quality Guarantees ===',
+      '- Maintain original identity: must be recognizable as the same person',
+      `- Beautification level: ${ASIAN_FEMALE_STRATEGIES[context.ageGroup].level}`
+    );
   }
-  
-  parts.push(
-    '',
-    '// === Quality Guarantees ===',
-    '- Maintain original identity: must be recognizable as the same person',
-    '- Natural-looking results: no over-processing or artificial appearance',
-    '- Preserve unique characteristics: moles, scars, and distinctive features',
-    '- High-definition quality: professional photo retouching standard',
-    `- Beautification level: ${ageStrategy.level} (age-appropriate)`
-  );
   
   return parts.join('\n');
 }
