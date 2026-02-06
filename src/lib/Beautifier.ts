@@ -378,19 +378,30 @@ const ASIAN_FEMALE_STRATEGIES: Record<AgeGroup, AsianFemaleStrategy> = {
   
   teenager: {
     level: 'light',
-    brightness: 'moderate',
+    brightness: 'enhanced',
     faceSlimming: 'subtle',
     eyeEnlargement: 'moderate',
     skinSmoothing: 'gentle',
     wrinkleRemoval: 'gentle',
     youthFactor: 0,
     prompt: `
-      Youthful teen enhancement:
-      - Bright clear skin with natural radiance
-      - Slightly enlarged expressive eyes with sparkle
-      - Fresh energetic appearance
-      - Natural healthy glow
-      - Preserve youthful features
+      **Youthful Asian Female Portrait:**
+      
+      === PROFESSIONAL LIGHTING ===
+      Flattering studio lighting for natural glow
+      
+      === SKIN ===
+      - Clear bright skin with natural radiance
+      - Reduced blemishes, healthy glow
+      - Maintain natural teen texture
+      
+      === EYES ===
+      - Expressive eyes with sparkle
+      - Natural enlargement
+      
+      === FINAL EFFECT ===
+      - Fresh energetic youthful look
+      - Natural beauty preserved
     `.trim()
   },
   
@@ -399,17 +410,37 @@ const ASIAN_FEMALE_STRATEGIES: Record<AgeGroup, AsianFemaleStrategy> = {
     brightness: 'enhanced',
     faceSlimming: 'moderate',
     eyeEnlargement: 'moderate',
-    skinSmoothing: 'moderate',
+    skinSmoothing: 'aggressive',
     wrinkleRemoval: 'gentle',
     youthFactor: 0,
     prompt: `
-      Beauty enhancement for young Asian woman:
-      - Bright luminous complexion with even skin tone
-      - Defined V-line jaw, slim refined face shape
-      - Bigger brighter eyes with natural makeup effect
-      - Smooth porcelain-like skin, refined pores
-      - Youthful vibrant appearance
-      - Camera-ready polished look
+      **Professional Asian Female Studio Portrait:**
+      
+      === PROFESSIONAL LIGHTING ===
+      Multi-level studio lighting setup:
+      - Key light + Fill light for perfect face illumination
+      - Eliminates shadows, creates porcelain luminosity
+      
+      === SKIN PERFECTION ===
+      - Smooth porcelain skin texture
+      - Remove acne, blemishes, closed comedones
+      - Refined pores
+      - Even luminous glowing complexion
+      
+      === FACIAL CONTOURING ===
+      - Defined V-line jaw
+      - Slim refined face shape
+      - High cheekbones
+      
+      === EYE ENHANCEMENT ===
+      - Bigger brighter eyes
+      - Natural makeup effect
+      - Sparkling expressive eyes
+      
+      === FINAL EFFECT ===
+      - Polished magazine-quality portrait
+      - Naturally beautiful, camera-ready
+      - Professional studio photography look
     `.trim()
   },
   
@@ -422,91 +453,131 @@ const ASIAN_FEMALE_STRATEGIES: Record<AgeGroup, AsianFemaleStrategy> = {
     wrinkleRemoval: 'deep',
     youthFactor: 8,
     prompt: `
-      **Ultimate Asian Female Beautification - 8 years younger:**
+      **Professional Asian Female Studio Portrait - 8 Years Younger:**
       
-      1. BRIGHTENING & SKIN TONE:
-      - Radiant luminous skin with even porcelain complexion
-      - Brightened overall tone, eliminate dullness
-      - Healthy pinkish glow, avoid over-whitening
+      === PROFESSIONAL LIGHTING (Key) ===
+      Multi-level studio lighting setup like professional photoshoot:
+      - Key light (main flash): Brightens entire face evenly from front-above
+      - Fill light (soft fill): Eliminates all shadows, perfect illumination
+      - Rim light/Back light: Creates beautiful hair glow, separates subject from background
+      - Reflector bounce: Fills under eyes, chin, nasolabial areas
+      - Result: Flawlessly lit face, no dark areas, porcelain-like luminosity
       
-      2. FACE SLIMMING & CONTOURING:
-      - Pronounced V-line jaw, significantly slimmed face
-      - Defined cheekbones, reduced face width
-      - Elongated elegant facial proportions
+      === SKIN PERFECTION ===
+      - Completely smooth, Porcelain baby-face texture
+      - Remove ALL acne, pimples, marks, closed comedones
+      - Erase ALL wrinkles (forehead, crow's feet, nasolabial, smile lines)
+      - Remove age spots, sun spots, pigmentation
+      - Minimize pores to near-invisible
+      - Even, luminous, glowing skin tone
       
-      3. EYE ENLARGEMENT:
-      - Significantly larger bright sparkling eyes
+      === FACIAL CONTOURING ===
+      - V-line slim jaw, significantly reduced face width
+      - Defined high cheekbones
+      - Refined facial proportions
+      
+      === EYE ENHANCEMENT ===
+      - Significantly larger, brighter eyes
       - Enhanced eye shape, lifted outer corners
-      - Brighter eye whites, reduced dark circles
-      - Defined eyes with natural-looking effect
+      - Brighter eye whites, no dark circles
+      - Sparkling expressive eyes
       
-      4. SKIN SMOOTHING & WRINKLE REMOVAL:
-      - Deep pore minimization, porcelain skin texture
-      - Complete wrinkle erasure (forehead, crow's feet, nasolabial)
-      - Tightened facial contours, reduced sagging
-      - Smooth baby-face skin quality
+      === COMPLEXION & GLOW ===
+      - Healthy rosy-pink glow, luminous complexion
+      - Even skin tone, eliminate dullness
+      - Fresh vibrant look
       
-      5. OVERALL YOUTH EFFECT:
+      === FINAL EFFECT ===
       - Look 8-10 years younger
-      - Refined delicate features
-      - Fresh youthful vitality
+      - Much prettier than original but still realistic
+      - Studio-quality professional portrait
+      - Natural catchlights in eyes
     `.trim()
   },
   
   middle_aged: {
     level: 'strong',
     brightness: 'enhanced',
-    faceSlimming: 'moderate',
+    faceSlimming: 'strong',
     eyeEnlargement: 'significant',
     skinSmoothing: 'aggressive',
     wrinkleRemoval: 'deep',
     youthFactor: 10,
     prompt: `
-      **Rejuvenating Asian Female Enhancement - 10 years younger:**
+      **Professional Asian Female Studio Portrait - 10 Years Younger:**
       
-      1. SKIN BRIGHTENING:
-      - Brightened luminous complexion
-      - Even skin tone, reduced age spots
-      - Healthy rosy undertones
+      === PROFESSIONAL LIGHTING (Key) ===
+      Multi-level studio lighting setup like professional photoshoot:
+      - Key light (main flash): Brightens entire face evenly from front-above
+      - Fill light (soft fill): Eliminates all shadows, perfect illumination
+      - Rim light/Back light: Creates beautiful hair glow, separates subject from background
+      - Reflector bounce: Fills under eyes, chin, nasolabial areas
+      - Result: Flawlessly lit face, no dark areas, porcelain-like luminosity
       
-      2. FACE SLIMMING:
-      - Refined V-line jaw
-      - Lifted cheekbones
-      - Youthful facial contours
+      === SKIN PERFECTION ===
+      - Completely smooth, Porcelain baby-face texture
+      - Remove ALL acne, pimples, marks, closed comedones
+      - Erase ALL wrinkles (forehead, crow's feet, nasolabial, smile lines)
+      - Remove age spots, sun spots, pigmentation
+      - Minimize pores to near-invisible
+      - Even, luminous, glowing skin tone
       
-      3. EYE ENHANCEMENT:
-      - Larger expressive eyes
-      - Lifted eye area, reduced crow's feet
-      - Brightened under-eye, minimized dark circles
+      === FACIAL CONTOURING ===
+      - V-line slim jaw, significantly reduced face width
+      - Defined high cheekbones
+      - Lifted facial contours
       
-      4. SKIN RENEWAL:
-      - Deep wrinkle removal
-      - Smooth refined skin texture
-      - Tightened youthful appearance
+      === EYE ENHANCEMENT ===
+      - Significantly larger, brighter eyes
+      - Enhanced eye shape, lifted outer corners
+      - Brighter eye whites, reduced dark circles
+      - Sparkling expressive eyes
       
-      5. YOUTH RESTORATION:
+      === COMPLEXION & GLOW ===
+      - Healthy rosy-pink glow, luminous complexion
+      - Even skin tone, eliminate dullness
+      - Fresh vibrant look
+      
+      === FINAL EFFECT ===
       - Look 10 years younger
-      - Elegant mature beauty preserved
-      - Confident sophisticated appearance
+      - Much prettier than original but still realistic
+      - Studio-quality professional portrait
+      - Natural catchlights in eyes
     `.trim()
   },
   
   elderly: {
     level: 'gentle',
-    brightness: 'moderate',
-    faceSlimming: 'subtle',
-    eyeEnlargement: 'moderate',
-    skinSmoothing: 'moderate',
+    brightness: 'enhanced',
+    faceSlimming: 'moderate',
+    eyeEnlargement: 'significant',
+    skinSmoothing: 'aggressive',
     wrinkleRemoval: 'moderate',
-    youthFactor: 8,
+    youthFactor: 10,
     prompt: `
-      Dignified enhancement for senior Asian woman:
-      - Healthy warm skin tone with natural brightness
-      - Gently smoothed lines while preserving dignity
-      - Softened facial contours
-      - Warm approachable expression
-      - Graceful elegant appearance
-      - Look well-maintained and vibrant
+      **Professional Asian Female Studio Portrait - Elegant & Youthful:**
+      
+      === PROFESSIONAL LIGHTING ===
+      Multi-level studio lighting for flattering illumination
+      
+      === SKIN PERFECTION ===
+      - Smooth refined skin texture
+      - Reduce but not completely remove wrinkles (preserve dignity)
+      - Remove spots and blemishes
+      - Luminous healthy complexion
+      
+      === FACIAL CONTOURING ===
+      - Refined face shape
+      - Lifted contours
+      
+      === EYE ENHANCEMENT ===
+      - Larger brighter eyes
+      - Reduced dark circles
+      
+      === FINAL EFFECT ===
+      - Look 8-10 years younger
+      - Elegant dignified beauty
+      - Studio-quality professional portrait
     `.trim()
   }
 };
