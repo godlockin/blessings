@@ -23,28 +23,51 @@ export class PromptGenerator {
     const beautifyInfo = this.buildBeautifyInfo(context);
 
     const isAsianFemale = context.ethnicity === 'asian' && context.gender === 'female';
+    const isMale = context.gender === 'male';
     const youthTarget = isAsianFemale && (context.ageGroup === 'adult' || context.ageGroup === 'middle_aged') 
       ? '目标：看起来年轻8-10岁' 
       : '';
-
+    
+    const clothingInstruction = isMale 
+      ? '男士穿着传统中国唐装，红色或金色为主，经典盘扣设计，体现中国传统男性魅力'
+      : '女士穿着优雅中国旗袍，红色或金色为主，经典立领盘扣，贴身剪裁展现东方女性曲线之美';
+    
     const prompt = `你是一个Prompt专家。根据以下人物特征，生成一个用于生成中国新年祝福照片的英文Prompt。
     人物特征：${analysisText}
     年龄组：${ageGroupDescription[context.ageGroup]}
     美颜配置：${beautifyInfo}
     ${youthTarget}
     
-    核心要求（必须严格遵守）：
-    1. **真实感第一**：照片必须看起来完全像是用 iPhone 16 Pro Max 在自然光线下拍摄的真实照片
-    2. **真实摄影特征**：保留皮肤毛孔纹理、自然肤色过渡、真实光影效果、自然的眼神光
-    3. **自然美化**：比原图好看 - 肤色更均匀、痘印瑕疵减少、气色更好、眼睛更有神
-    4. **禁止塑料感**：不要过度磨皮、不要假白、不要像AI生成的虚假感
-    5. **保持辨识度**：能看出是同一个人，保留面部独特特征（痣、独特轮廓等）
+    ===========================================
+    核心要求（严格遵守）：
+    ===========================================
+    1. **真实摄影**：必须完全像 iPhone 16 Pro Max 拍摄的真人照片
+       - 保留皮肤纹理和毛孔细节
+       - 自然肤色过渡和真实光影
+       - 眼神有自然的 catchlights
+       - 禁止塑料感、AI虚假感
     
-    智能美颜：${beautifyPrompt}
+     2. **自然美化**：比原图更好看，但真实自然
+        - 肤色更均匀、气色更好
+        - 痘印瑕疵减少
+        - 眼睛更有神采
+        - 能看出是同一个人
     
-    场景：背景为中国新年氛围（红色、灯笼、烟花等）
-    服饰：喜庆的中国传统服饰或现代红色系服饰
-    动作：双手抱拳作揖（中国传统拜年姿势），全身构图
+    智能美颜细节：${beautifyPrompt}
+    
+    ===========================================
+    统一场景设置：
+    ===========================================
+    ${clothingInstruction}
+    
+    背景：中国传统新年场景
+    - 红色为主色调，象征喜庆吉祥
+    - 传统装饰元素：灯笼、对联、福字、烟花、鞭炮、金色装饰
+    - 温暖的室内光线，营造温馨氛围
+    - 背景适度虚化，突出人物主体
+    - 整体透出欢乐、喜庆、温暖的中国新年气息
+    
+    动作：双手抱拳作揖拜年姿势，展现中国传统礼仪风范，全身构图
     
     风格：iPhone 16 Pro Max 真实摄影风格
     - 保留皮肤纹理和毛孔细节（真实感的关键）
