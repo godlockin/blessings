@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@google/genai": "^1.37.0",
+    "@langchain/langgraph": "^0.2.56",
+    "@langchain/core": "^0.3.38",
     "@types/file-saver": "^2.0.7",
     "@types/jszip": "^3.4.0",
     "ali-oss": "^6.23.0",

@@ -1,5 +1,6 @@
 import { GeminiClient } from './GeminiClient';
 import { beautify, type AgeGroup, type BeautifyContext } from './Beautifier';
+import type { GenerationContext } from './ImageReviewer';
 
 export class PromptGenerator {
   private client: GeminiClient;
@@ -9,23 +10,31 @@ export class PromptGenerator {
   }
 
   async generate(analysisText: string): Promise<string> {
+    const { prompt } = await this.buildFullPrompt(analysisText);
+    return prompt;
+  }
+
+  async buildFullPrompt(analysisText: string): Promise<{ prompt: string; context: GenerationContext }> {
     const { context, prompt: beautifyPrompt } = beautify(analysisText);
     
     const ageGroupDescription: Record<AgeGroup, string> = {
       child: '儿童（保持天真可爱）',
       teenager: '青少年（保持青春活力）',
       young_adult: '青年女性（精致美颜）',
-      adult: '成年女性（减龄8岁）',
-      middle_aged: '中年女性（减龄10岁）',
-      elderly: '老年女性（温和美颜）'
+      adult: '成年女性（减龄12岁，强力去皱瘦脸）',
+      middle_aged: '中年女性（减龄15岁，深度去皱瘦脸）',
+      elderly: '老年女性（减龄10岁，温和美颜）'
     };
 
     const beautifyInfo = this.buildBeautifyInfo(context);
 
     const isAsianFemale = context.ethnicity === 'asian' && context.gender === 'female';
     const isMale = context.gender === 'male';
-    const youthTarget = isAsianFemale && (context.ageGroup === 'adult' || context.ageGroup === 'middle_aged') 
-      ? '目标：看起来年轻8-10岁' 
+    const youthTarget = isAsianFemale 
+      ? context.ageGroup === 'adult' ? '目标：看起来年轻12岁' 
+        : context.ageGroup === 'middle_aged' ? '目标：看起来年轻15岁'
+        : context.ageGroup === 'elderly' ? '目标：看起来年轻10岁'
+        : ''
       : '';
     
     const clothingInstruction = isMale 
@@ -78,11 +87,21 @@ export class PromptGenerator {
     - 准确的白平衡和自然的色彩还原
     - 景深效果自然，主体清晰背景虚化适中
     
-    ${isAsianFemale ? '针对亚洲女士：专业影棚级多层次打光，让脸部更亮更白皙；大眼瘦脸；磨皮祛痘去闭口去皱纹去斑；提升气色；看起来比本人好看很多，但依然真实自然。' : ''}
+    ${isAsianFemale ? '针对中国/亚洲女士强化要求：强力瘦脸（V-line下颌、尖下巴、小脸效果）；深度去皱（消除所有皱纹）；显著减龄12-15岁；紧致提升面部轮廓；大眼效果；磨皮祛痘去闭口；看起来比本人好看很多，但依然真实自然。' : ''}
     
     请只输出英文Prompt内容，不要包含其他解释。`;
 
-    return this.client.generateContent(prompt);
+    const finalContext: GenerationContext = {
+      originalAnalysis: analysisText,
+      prompt,
+      ageGroup: context.ageGroup,
+      isAsianFemale
+    };
+
+    return {
+      prompt: await this.client.generateContent(prompt),
+      context: finalContext
+    };
   }
 
   private buildBeautifyInfo(context: BeautifyContext): string {

@@ -451,47 +451,50 @@ const ASIAN_FEMALE_STRATEGIES: Record<AgeGroup, AsianFemaleStrategy> = {
     eyeEnlargement: 'significant',
     skinSmoothing: 'aggressive',
     wrinkleRemoval: 'deep',
-    youthFactor: 8,
+    youthFactor: 12,
     prompt: `
-      **Professional Asian Female Studio Portrait - 8 Years Younger:**
+      **Ultimate Asian Female Transformation - 12 Years Younger:**
       
-      === PROFESSIONAL LIGHTING (Key) ===
-      Multi-level studio lighting setup like professional photoshoot:
-      - Key light (main flash): Brightens entire face evenly from front-above
-      - Fill light (soft fill): Eliminates all shadows, perfect illumination
-      - Rim light/Back light: Creates beautiful hair glow, separates subject from background
-      - Reflector bounce: Fills under eyes, chin, nasolabial areas
-      - Result: Flawlessly lit face, no dark areas, porcelain-like luminosity
+      === DRAMATIC FACE SLIMMING (Key Focus) ===
+      - Extreme V-line jaw: Narrow pointed chin, significantly reduced face width
+      - Sharp defined jawline, eliminate all face roundness
+      - Prominent high cheekbones, hollowed cheeks effect
+      - Face appears elongated and refined
+      - Dramatic facial reshaping for youthful oval shape
+      
+      === AGGRESSIVE WRINKLE REMOVAL ===
+      - COMPLETELY erase forehead lines and creases
+      - COMPLETELY remove crow's feet and eye wrinkles
+      - COMPLETELY eliminate nasolabial folds (laugh lines)
+      - COMPLETELY remove smile lines and marionette lines
+      - Smooth tight facial skin, zero visible wrinkles
+      - Youthful tight skin texture
+      
+      === PROFESSIONAL LIGHTING ===
+      Multi-level studio lighting:
+      - Key light + Fill light: Perfect even illumination
+      - Rim light: Beautiful hair glow
+      - Result: Flawlessly lit, porcelain luminosity
       
       === SKIN PERFECTION ===
-      - Completely smooth, Porcelain baby-face texture
-      - Remove ALL acne, pimples, marks, closed comedones
-      - Erase ALL wrinkles (forehead, crow's feet, nasolabial, smile lines)
-      - Remove age spots, sun spots, pigmentation
-      - Minimize pores to near-invisible
-      - Even, luminous, glowing skin tone
+      - Baby-smooth porcelain skin
+      - Remove ALL acne, blemishes, closed comedones
+      - Remove ALL age spots, sun spots, pigmentation
+      - Pores nearly invisible
+      - Luminous glowing complexion
       
-      === FACIAL CONTOURING ===
-      - V-line slim jaw, significantly reduced face width
-      - Defined high cheekbones
-      - Refined facial proportions
-      
-      === EYE ENHANCEMENT ===
-      - Significantly larger, brighter eyes
-      - Enhanced eye shape, lifted outer corners
-      - Brighter eye whites, no dark circles
+      === EYE ENLARGEMENT ===
+      - Significantly larger eyes
+      - Lifted outer corners, cat-eye effect
+      - Brighter whites, no dark circles
       - Sparkling expressive eyes
       
-      === COMPLEXION & GLOW ===
-      - Healthy rosy-pink glow, luminous complexion
-      - Even skin tone, eliminate dullness
-      - Fresh vibrant look
-      
       === FINAL EFFECT ===
-      - Look 8-10 years younger
-      - Much prettier than original but still realistic
-      - Studio-quality professional portrait
-      - Natural catchlights in eyes
+      - Look 12-15 years younger
+      - Dramatically slimmed face
+      - Completely wrinkle-free
+      - Much prettier but realistic
+      - Magazine cover quality
     `.trim()
   },
   
@@ -502,47 +505,57 @@ const ASIAN_FEMALE_STRATEGIES: Record<AgeGroup, AsianFemaleStrategy> = {
     eyeEnlargement: 'significant',
     skinSmoothing: 'aggressive',
     wrinkleRemoval: 'deep',
-    youthFactor: 10,
+    youthFactor: 15,
     prompt: `
-      **Professional Asian Female Studio Portrait - 10 Years Younger:**
+      **Ultimate Asian Female Transformation - 15 Years Younger:**
       
-      === PROFESSIONAL LIGHTING (Key) ===
-      Multi-level studio lighting setup like professional photoshoot:
-      - Key light (main flash): Brightens entire face evenly from front-above
-      - Fill light (soft fill): Eliminates all shadows, perfect illumination
-      - Rim light/Back light: Creates beautiful hair glow, separates subject from background
-      - Reflector bounce: Fills under eyes, chin, nasolabial areas
-      - Result: Flawlessly lit face, no dark areas, porcelain-like luminosity
+      === DRAMATIC FACE SLIMMING (Key Focus) ===
+      - Extreme V-line jaw: Narrow pointed chin, significantly reduced face width
+      - Sharp defined jawline, eliminate all face roundness
+      - Prominent high cheekbones, sculpted facial contours
+      - Face appears significantly smaller and more refined
+      - Dramatic facial reshaping for youthful oval shape
+      
+      === AGGRESSIVE WRINKLE REMOVAL ===
+      - COMPLETELY erase forehead lines and creases
+      - COMPLETELY remove crow's feet and eye wrinkles
+      - COMPLETELY eliminate nasolabial folds (laugh lines)
+      - COMPLETELY remove smile lines and marionette lines
+      - COMPLETELY remove neck lines and crepey skin
+      - Smooth tight facial skin, zero visible wrinkles
+      - Youthful tight skin texture
+      
+      === PROFESSIONAL LIGHTING ===
+      Multi-level studio lighting:
+      - Key light + Fill light: Perfect even illumination
+      - Rim light: Beautiful hair glow
+      - Result: Flawlessly lit, porcelain luminosity
       
       === SKIN PERFECTION ===
-      - Completely smooth, Porcelain baby-face texture
-      - Remove ALL acne, pimples, marks, closed comedones
-      - Erase ALL wrinkles (forehead, crow's feet, nasolabial, smile lines)
-      - Remove age spots, sun spots, pigmentation
-      - Minimize pores to near-invisible
-      - Even, luminous, glowing skin tone
+      - Baby-smooth porcelain skin
+      - Remove ALL blemishes, marks, imperfections
+      - Remove ALL age spots, sun spots, pigmentation
+      - Pores nearly invisible
+      - Luminous glowing complexion
       
-      === FACIAL CONTOURING ===
-      - V-line slim jaw, significantly reduced face width
-      - Defined high cheekbones
-      - Lifted facial contours
+      === EYE ENLARGEMENT ===
+      - Significantly larger eyes
+      - Lifted outer corners, cat-eye effect
+      - Brighter whites, no dark circles
+      - Youthful sparkling eyes
       
-      === EYE ENHANCEMENT ===
-      - Significantly larger, brighter eyes
-      - Enhanced eye shape, lifted outer corners
-      - Brighter eye whites, reduced dark circles
-      - Sparkling expressive eyes
-      
-      === COMPLEXION & GLOW ===
-      - Healthy rosy-pink glow, luminous complexion
-      - Even skin tone, eliminate dullness
-      - Fresh vibrant look
+      === FACELIFT EFFECT ===
+      - Tightened facial contours
+      - Lifted cheekbones
+      - Reduced sagging
+      - Youthful facial structure
       
       === FINAL EFFECT ===
-      - Look 10 years younger
-      - Much prettier than original but still realistic
-      - Studio-quality professional portrait
-      - Natural catchlights in eyes
+      - Look 15 years younger
+      - Dramatically slimmed refined face
+      - Completely wrinkle-free tight skin
+      - Much prettier but realistic
+      - Professional portrait quality
     `.trim()
   },
   
