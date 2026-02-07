@@ -8,9 +8,16 @@ export OSS_REGION="oss-cn-hangzhou"
 export OSS_ACCESS_KEY_ID="your-access-key-id"
 export OSS_ACCESS_KEY_SECRET="your-access-key-secret"
 export OSS_BUCKET="your-bucket-name"
-export OSS_PATH_PREFIX="blessings-generated"
+export OSS_PREFIX="content-space/blessings"
 export OSS_EXPIRES_IN="31536000"
 ```
+
+## 保存路径说明
+
+| 变量 | 说明 | 默认值 | 示例 |
+|------|------|--------|------|
+| `OSS_PREFIX` | 保存路径前缀 | `content-space/blessings` | `content-space/blessings` |
+| 完整路径 | `{OSS_PREFIX}/{timestamp}-{filename}` | - | `content-space/blessings/1738900000000-blessing.png` |
 
 ## Usage Example
 

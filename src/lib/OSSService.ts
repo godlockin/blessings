@@ -200,7 +200,7 @@ export function createOSSServiceFromEnv(): OSSService | null {
 
   return new OSSService({
     config,
-    pathPrefix: process.env.OSS_PATH_PREFIX || 'blessings-generated',
+    pathPrefix: process.env.OSS_PREFIX || 'blessings-generated',
     expiresIn: parseInt(process.env.OSS_EXPIRES_IN || '31536000', 10)
   });
 }
