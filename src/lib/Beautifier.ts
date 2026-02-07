@@ -414,183 +414,190 @@ const ASIAN_FEMALE_STRATEGIES: Record<AgeGroup, AsianFemaleStrategy> = {
     wrinkleRemoval: 'gentle',
     youthFactor: 0,
     prompt: `
-      **Professional Asian Female Studio Portrait:**
+      **Realistic iPhone Portrait - Naturally Beautiful:**
+      
+      === CORE PRINCIPLE: REALISM FIRST ===
+      - MUST look like a REAL photo taken with iPhone 16 Pro Max
+      - Keep natural skin TEXTURE and visible PORES (key to realism)
+      - Keep natural skin TONE variations (not uniform)
+      - NO plastic, anime, or 3D-rendered look
+      - Allow MINOR imperfections (adds authenticity)
+      - Person must be RECOGNIZABLE as the same person
       
       === PROFESSIONAL LIGHTING ===
-      Multi-level studio lighting setup:
-      - Key light + Fill light for perfect face illumination
-      - Eliminates shadows, creates porcelain luminosity
+      - Multi-light studio setup: Key + Fill + Rim
+      - Even face illumination, no harsh shadows
+      - Natural catchlights in eyes
+      - Professional but natural-looking light
       
-      === SKIN PERFECTION ===
-      - Smooth porcelain skin texture
-      - Remove acne, blemishes, closed comedones
-      - Refined pores
-      - Even luminous glowing complexion
+      === SKIN ENHANCEMENT (Natural) ===
+      - Reduce noticeable acne, blemishes, large spots
+      - Soften wrinkles but keep some skin texture (NOT baby-smooth)
+      - Slightly even skin tone (not perfect uniformity)
+      - Keep pores visible but refined
+      - Natural healthy glow, NOT porcelain/plastic
       
-      === FACIAL CONTOURING ===
-      - Defined V-line jaw
-      - Slim refined face shape
-      - High cheekbones
+      === FACE SLIMMING (Subtle) ===
+      - Slight V-line jaw enhancement
+      - Subtle contouring, NOT dramatic reshaping
+      - Maintain natural face structure
       
       === EYE ENHANCEMENT ===
-      - Bigger brighter eyes
-      - Natural makeup effect
-      - Sparkling expressive eyes
+      - Eyes slightly brighter and more expressive
+      - Reduce dark circles
+      - Natural-looking enhancement (NOT artificial)
       
       === FINAL EFFECT ===
-      - Polished magazine-quality portrait
-      - Naturally beautiful, camera-ready
-      - Professional studio photography look
+      - Look BETTER than original but 100% REAL
+      - Like a professionally retouched iPhone photo
+      - Naturally beautiful, not "filtered" or "AI-generated"
+      - Someone seeing this would say "great photo" not "wow AI"
     `.trim()
   },
   
   adult: {
     level: 'strong',
     brightness: 'enhanced',
-    faceSlimming: 'strong',
-    eyeEnlargement: 'significant',
-    skinSmoothing: 'aggressive',
-    wrinkleRemoval: 'deep',
-    youthFactor: 12,
+    faceSlimming: 'moderate',
+    eyeEnlargement: 'moderate',
+    skinSmoothing: 'moderate',
+    wrinkleRemoval: 'moderate',
+    youthFactor: 8,
     prompt: `
-      **Ultimate Asian Female Transformation - 12 Years Younger:**
+      **Realistic iPhone Portrait - 8 Years Younger, 100% Real:**
       
-      === DRAMATIC FACE SLIMMING (Key Focus) ===
-      - Extreme V-line jaw: Narrow pointed chin, significantly reduced face width
-      - Sharp defined jawline, eliminate all face roundness
-      - Prominent high cheekbones, hollowed cheeks effect
-      - Face appears elongated and refined
-      - Dramatic facial reshaping for youthful oval shape
+      === CORE PRINCIPLE: REALISM FIRST (Non-Negotiable) ===
+      - MUST look like a REAL photo taken with iPhone 16 Pro Max
+      - CRITICAL: Keep natural skin TEXTURE and visible PORES
+      - CRITICAL: Keep natural skin tone variations
+      - FORBIDDEN: Plastic skin, anime look, 3D-rendered appearance
+      - ALLOWED: Minor imperfections add authenticity
+      - REQUIRED: Person must be 100% RECOGNIZABLE
       
-      === AGGRESSIVE WRINKLE REMOVAL ===
-      - COMPLETELY erase forehead lines and creases
-      - COMPLETELY remove crow's feet and eye wrinkles
-      - COMPLETELY eliminate nasolabial folds (laugh lines)
-      - COMPLETELY remove smile lines and marionette lines
-      - Smooth tight facial skin, zero visible wrinkles
-      - Youthful tight skin texture
+      === NATURAL WRINKLE REDUCTION ===
+      - Soften deep wrinkles and expression lines
+      - Keep SOME fine lines (shows real skin texture)
+      - Reduce crow's feet and forehead lines
+      - Natural appearance, NOT frozen or "stretched"
       
-      === PROFESSIONAL LIGHTING ===
-      Multi-level studio lighting:
-      - Key light + Fill light: Perfect even illumination
-      - Rim light: Beautiful hair glow
-      - Result: Flawlessly lit, porcelain luminosity
+      === NATURAL SKIN ENHANCEMENT ===
+      - Reduce obvious acne, blemishes, age spots
+      - Soften skin but KEEP TEXTURE (key difference from AI)
+      - Keep pores visible (sign of real skin)
+      - Even tone but NOT perfect uniformity
+      - Healthy glow, NOT plastic sheen
       
-      === SKIN PERFECTION ===
-      - Baby-smooth porcelain skin
-      - Remove ALL acne, blemishes, closed comedones
-      - Remove ALL age spots, sun spots, pigmentation
-      - Pores nearly invisible
-      - Luminous glowing complexion
+      === FACE SLIMMING (Moderate) ===
+      - Moderate V-line jaw enhancement
+      - Slight cheekbone definition
+      - Maintain natural face structure
       
-      === EYE ENLARGEMENT ===
-      - Significantly larger eyes
-      - Lifted outer corners, cat-eye effect
-      - Brighter whites, no dark circles
-      - Sparkling expressive eyes
+      === EYE ENHANCEMENT ===
+      - Eyes brighter and more expressive
+      - Reduce dark circles
+      - Natural catchlights preserved
+      
+      === LIGHTING ===
+      - Professional studio multi-light setup
+      - Even illumination on face
+      - Natural shadow transitions
       
       === FINAL EFFECT ===
-      - Look 12-15 years younger
-      - Dramatically slimmed face
-      - Completely wrinkle-free
-      - Much prettier but realistic
-      - Magazine cover quality
+      - Look 8 years younger BUT 100% REAL
+      - Like a beautifully retouched professional photo
+      - Real skin texture, real pores, real person
+      - NOT: plastic, anime, 3D, AI-generated
     `.trim()
   },
   
   middle_aged: {
     level: 'strong',
     brightness: 'enhanced',
-    faceSlimming: 'strong',
-    eyeEnlargement: 'significant',
-    skinSmoothing: 'aggressive',
-    wrinkleRemoval: 'deep',
-    youthFactor: 15,
+    faceSlimming: 'moderate',
+    eyeEnlargement: 'moderate',
+    skinSmoothing: 'moderate',
+    wrinkleRemoval: 'moderate',
+    youthFactor: 10,
     prompt: `
-      **Ultimate Asian Female Transformation - 15 Years Younger:**
+      **Realistic iPhone Portrait - 10 Years Younger, 100% Real:**
       
-      === DRAMATIC FACE SLIMMING (Key Focus) ===
-      - Extreme V-line jaw: Narrow pointed chin, significantly reduced face width
-      - Sharp defined jawline, eliminate all face roundness
-      - Prominent high cheekbones, sculpted facial contours
-      - Face appears significantly smaller and more refined
-      - Dramatic facial reshaping for youthful oval shape
+      === CORE PRINCIPLE: REALISM FIRST (Non-Negotiable) ===
+      - MUST look like a REAL photo taken with iPhone 16 Pro Max
+      - CRITICAL: Keep natural skin TEXTURE and visible PORES
+      - CRITICAL: Keep natural skin tone variations
+      - FORBIDDEN: Plastic skin, anime look, 3D-rendered appearance
+      - ALLOWED: Minor imperfections add authenticity
+      - REQUIRED: Person must be 100% RECOGNIZABLE
       
-      === AGGRESSIVE WRINKLE REMOVAL ===
-      - COMPLETELY erase forehead lines and creases
-      - COMPLETELY remove crow's feet and eye wrinkles
-      - COMPLETELY eliminate nasolabial folds (laugh lines)
-      - COMPLETELY remove smile lines and marionette lines
-      - COMPLETELY remove neck lines and crepey skin
-      - Smooth tight facial skin, zero visible wrinkles
-      - Youthful tight skin texture
+      === WRINKLE REDUCTION (Natural) ===
+      - Soften deep wrinkles significantly
+      - Keep SOME fine lines for authenticity
+      - Natural reduction, NOT complete erasure
+      - Face looks relaxed, NOT frozen
       
-      === PROFESSIONAL LIGHTING ===
-      Multi-level studio lighting:
-      - Key light + Fill light: Perfect even illumination
-      - Rim light: Beautiful hair glow
-      - Result: Flawlessly lit, porcelain luminosity
+      === SKIN ENHANCEMENT ===
+      - Reduce obvious age spots, blemishes
+      - Soften skin but KEEP TEXTURE
+      - Keep pores visible
+      - Healthy natural glow
       
-      === SKIN PERFECTION ===
-      - Baby-smooth porcelain skin
-      - Remove ALL blemishes, marks, imperfections
-      - Remove ALL age spots, sun spots, pigmentation
-      - Pores nearly invisible
-      - Luminous glowing complexion
+      === FACE SLIMMING ===
+      - Moderate V-line enhancement
+      - Slight facial contouring
       
-      === EYE ENLARGEMENT ===
-      - Significantly larger eyes
-      - Lifted outer corners, cat-eye effect
-      - Brighter whites, no dark circles
-      - Youthful sparkling eyes
+      === EYE ENHANCEMENT ===
+      - Brighter, more expressive eyes
+      - Reduced dark circles
       
-      === FACELIFT EFFECT ===
-      - Tightened facial contours
-      - Lifted cheekbones
-      - Reduced sagging
-      - Youthful facial structure
-      
-      === FINAL EFFECT ===
-      - Look 15 years younger
-      - Dramatically slimmed refined face
-      - Completely wrinkle-free tight skin
-      - Much prettier but realistic
-      - Professional portrait quality
-    `.trim()
+       === FINAL EFFECT ===
+       - Look 10 years younger BUT completely real
+       - Professional photo retouching quality
+       - Real person, real skin, real texture
+     `.trim()
   },
   
   elderly: {
     level: 'gentle',
     brightness: 'enhanced',
-    faceSlimming: 'moderate',
-    eyeEnlargement: 'significant',
-    skinSmoothing: 'aggressive',
-    wrinkleRemoval: 'moderate',
-    youthFactor: 10,
+    faceSlimming: 'subtle',
+    eyeEnlargement: 'moderate',
+    skinSmoothing: 'gentle',
+    wrinkleRemoval: 'gentle',
+    youthFactor: 8,
     prompt: `
-      **Professional Asian Female Studio Portrait - Elegant & Youthful:**
+      **Elegant Realistic Portrait - 8 Years Younger, 100% Real:**
       
-      === PROFESSIONAL LIGHTING ===
-      Multi-level studio lighting for flattering illumination
+      === CORE PRINCIPLE: REALISM FIRST ===
+      - MUST look like a REAL photo taken with iPhone 16 Pro Max
+      - Keep natural skin TEXTURE and visible PORES
+      - Keep natural skin tone variations
+      - FORBIDDEN: Plastic skin, anime look
+      - ALLOWED: Minor imperfections add authenticity
+      - REQUIRED: Person must be 100% RECOGNIZABLE
       
-      === SKIN PERFECTION ===
-      - Smooth refined skin texture
-      - Reduce but not completely remove wrinkles (preserve dignity)
-      - Remove spots and blemishes
-      - Luminous healthy complexion
+      === NATURAL WRINKLE REDUCTION ===
+      - Gently soften deep wrinkles
+      - Keep fine lines (natural aging)
+      - Face looks relaxed and natural
       
-      === FACIAL CONTOURING ===
-      - Refined face shape
-      - Lifted contours
+      === SKIN ENHANCEMENT ===
+      - Reduce obvious spots, blemishes
+      - Maintain skin texture (NOT smooth)
+      - Keep pores visible
+      - Healthy natural glow
+      
+      === FACE SLIMMING ===
+      - Slight V-line enhancement
+      - Natural face structure maintained
       
       === EYE ENHANCEMENT ===
-      - Larger brighter eyes
+      - Slightly brighter eyes
       - Reduced dark circles
       
       === FINAL EFFECT ===
-      - Look 8-10 years younger
-      - Elegant dignified beauty
-      - Studio-quality professional portrait
+      - Look 8 years younger BUT completely real
+      - Elegant dignified beauty preserved
+      - Natural aging charm maintained
     `.trim()
   }
 };

@@ -9,10 +9,20 @@ import {
   DEFAULT_CONFIG 
 } from './types';
 import type { ImageAnalyzer } from '../ImageAnalyzer';
+import { OSSService, UploadResult } from '../OSSService';
+
+export interface AuditEntry {
+  timestamp: string;
+  phase: string;
+  action: string;
+  details: string;
+  expert?: string | null;
+}
 
 export interface MultiAgentResult {
   success: boolean;
   imageUrl: string;
+  ossResult?: UploadResult | undefined;
   prompt: string;
   iteration: number;
   qualityScores: QualityScores;
@@ -23,31 +33,35 @@ export interface MultiAgentResult {
   fullAuditTrail: AuditEntry[];
 }
 
-export interface AuditEntry {
-  timestamp: string;
-  phase: string;
-  action: string;
-  details: string;
-  expert?: string | null;
+export interface WorkflowOptions {
+  ossService?: OSSService;
+  saveToOSS?: boolean;
+  imageFilename?: string;
 }
 
 export class MultiAgentWorkflow {
   private orchestrator: MultiExpertOrchestrator;
-  private client: GeminiClient;
   private config: WorkflowConfig;
   private auditTrail: AuditEntry[];
   private imageAnalyzer: ImageAnalyzer;
+  private ossService: OSSService | null;
+  private saveToOSS: boolean;
+  private imageFilename: string;
 
   constructor(
     client: GeminiClient,
     imageAnalyzer: ImageAnalyzer,
-    config?: Partial<WorkflowConfig>
+    config?: Partial<WorkflowConfig>,
+    options?: WorkflowOptions
   ) {
-    this.client = client;
     this.orchestrator = new MultiExpertOrchestrator(client, config);
+    void client; // Reference to silence unused warning
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.auditTrail = [];
     this.imageAnalyzer = imageAnalyzer;
+    this.ossService = options?.ossService || null;
+    this.saveToOSS = options?.saveToOSS ?? true;
+    this.imageFilename = options?.imageFilename || `blessing-${Date.now()}.png`;
   }
 
   async process(
@@ -55,7 +69,6 @@ export class MultiAgentWorkflow {
     generateImageFn: (prompt: string) => Promise<string>
   ): Promise<MultiAgentResult> {
     this.auditTrail = [];
-    void this.client; // Reference to silence unused warning
     console.log('[Multi-Agent] Starting multi-expert workflow...');
     
     this.log('analysis', 'start', 'Analyzing original image...');
@@ -64,7 +77,7 @@ export class MultiAgentWorkflow {
       inlineData: { data: imageBase64, mimeType: 'image/png' } 
     });
     
-    this.log('analysis', 'complete', `Analysis complete`);
+    this.log('analysis', 'complete', 'Analysis complete');
     
     const isAsianFemale = this.detectAsianFemale(originalAnalysis);
     const ageGroup = this.detectAgeGroup(originalAnalysis);
@@ -77,6 +90,7 @@ export class MultiAgentWorkflow {
     let discussionHistory: WorkflowState['discussionHistory'] = [];
     let finalDecision: 'approved' | 'rejected' | 'needs_revision' = 'needs_revision';
     let issues: string[] = [];
+    let ossResult: UploadResult | undefined;
     
     for (let iteration = 1; iteration <= this.config.maxIterations; iteration++) {
       console.log(`[Multi-Agent] Iteration ${iteration}/${this.config.maxIterations}`);
@@ -103,7 +117,7 @@ export class MultiAgentWorkflow {
         consensus
       });
       
-      this.log('group_discussion', 'complete', `Consensus: ${consensus.substring(0, 50)}...`);
+      this.log('group_discussion', 'complete', 'Consensus reached');
       
       currentPrompt = await this.orchestrator.generateUnifiedPrompt(
         originalAnalysis,
@@ -117,6 +131,17 @@ export class MultiAgentWorkflow {
       const imageUrl = await generateImageFn(currentPrompt);
       bestImageUrl = imageUrl;
       this.log('image_generation', 'complete', 'Image generated');
+      
+      if (this.saveToOSS && this.ossService) {
+        this.log('oss_upload', 'start', 'Uploading to OSS...');
+        try {
+          const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+          ossResult = await this.ossService.uploadBase64(base64Data, this.imageFilename);
+          this.log('oss_upload', 'complete', `Uploaded: ${ossResult.url}`);
+        } catch (error) {
+          this.log('oss_upload', 'error', `Upload failed: ${error}`);
+        }
+      }
       
       this.log('final_review', 'start', 'Conducting final quality review...');
       const expertScores = this.calculateExpertScores(expertOpinions);
@@ -157,6 +182,7 @@ export class MultiAgentWorkflow {
     return {
       success: finalDecision === 'approved',
       imageUrl: bestImageUrl,
+      ossResult,
       prompt: currentPrompt,
       iteration: this.auditTrail.filter(e => e.phase === 'image_generation').length,
       qualityScores: bestScore,
@@ -220,7 +246,7 @@ export class MultiAgentWorkflow {
       young_adult: 0,
       adult: 12,
       middle_aged: 15,
-      elderly: 10
+      elderly: 12
     };
     
     return targets[ageGroup] || 8;
@@ -246,31 +272,45 @@ export class MultiAgentWorkflow {
     return this.auditTrail;
   }
 
+  setOSSService(ossService: OSSService): void {
+    this.ossService = ossService;
+    this.saveToOSS = true;
+  }
+
+  disableOSS(): void {
+    this.saveToOSS = false;
+  }
+
   generateReport(result: MultiAgentResult): string {
     const status = result.success ? 'SUCCESS' : 'FAILED';
     const decision = result.finalDecision.toUpperCase();
     
-    return `
-╔══════════════════════════════════════════════════════════════╗
-║           MULTI-EXPERT WORKFLOW FINAL REPORT               ║
-╠══════════════════════════════════════════════════════════════╣
-║ Status: ${status}                                              ║
-║ Iterations: ${result.iteration}/${this.config.maxIterations}                                        ║
-║ Final Decision: ${decision}                                      ║
-╠══════════════════════════════════════════════════════════════╣
-║ QUALITY SCORES (Target: ${this.config.passingScore}/10)                    ║
-║ ------------------------------------------------------------ ║
-║ Realism:              ${result.qualityScores.realism.toFixed(1)}/10                          ║
-║ Skin Quality:         ${result.qualityScores.skinQuality.toFixed(1)}/10                          ║
-║ Face Slimming:       ${result.qualityScores.faceSlimming.toFixed(1)}/10                         ║
-║ Wrinkle Removal:     ${result.qualityScores.wrinkleRemoval.toFixed(1)}/10                          ║
-║ Eye Enhancement:     ${result.qualityScores.eyeEnhancement.toFixed(1)}/10                          ║
-║ Brightness:          ${result.qualityScores.brightness.toFixed(1)}/10                          ║
-║ Identity Preservation: ${result.qualityScores.identityPreservation.toFixed(1)}/10                       ║
-║ OVERALL:             ${result.qualityScores.overall.toFixed(1)}/10                          ║
-╠══════════════════════════════════════════════════════════════╣
-${result.issues.length > 0 ? `║ ISSUES: ${result.issues[0]}                              ║\n` : ''}
-╚══════════════════════════════════════════════════════════════╝
+    let report = `
+╔══════════════════════════════════════════════════════════════════════╗
+║           MULTI-EXPERT WORKFLOW FINAL REPORT                      ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  Status: ${status}                                                   ║
+║  Iterations: ${result.iteration}/${this.config.maxIterations}                                       ║
+║  Final Decision: ${decision}                                         ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  QUALITY SCORES (Target: ${this.config.passingScore}/10)                           ║
+║  --------------------------------------------------------------   ║
+║  Realism:              ${result.qualityScores.realism.toFixed(1)}/10                              ║
+║  Skin Quality:         ${result.qualityScores.skinQuality.toFixed(1)}/10                              ║
+║  Face Slimming:       ${result.qualityScores.faceSlimming.toFixed(1)}/10                             ║
+║  Wrinkle Removal:     ${result.qualityScores.wrinkleRemoval.toFixed(1)}/10                             ║
+║  Eye Enhancement:     ${result.qualityScores.eyeEnhancement.toFixed(1)}/10                             ║
+║  Brightness:          ${result.qualityScores.brightness.toFixed(1)}/10                              ║
+║  Identity Preservation: ${result.qualityScores.identityPreservation.toFixed(1)}/10                           ║
+║  OVERALL:             ${result.qualityScores.overall.toFixed(1)}/10                              ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  OSS UPLOAD                                                          ║
+║  ${result.ossResult ? `URL: ${result.ossResult.url.substring(0, 50)}...` : 'Not uploaded'}                          ║
+╠══════════════════════════════════════════════════════════════════════╣
+${result.issues.length > 0 ? `║  ISSUES: ${result.issues[0].substring(0, 40)}...                      ║\n` : ''}
+╚══════════════════════════════════════════════════════════════════════╝
 `.trim();
+    
+    return report;
   }
 }
