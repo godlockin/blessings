@@ -10,7 +10,7 @@ export type Gender = 'male' | 'female' | 'unknown';
 export type SkinTone = 'fair' | 'light' | 'medium' | 'olive' | 'tan' | 'dark' | 'unknown';
 export type Ethnicity = 'asian' | 'caucasian' | 'african' | 'middle_eastern' | 'mixed' | 'unknown';
 export type FaceShape = 'oval' | 'round' | 'square' | 'heart' | 'long' | 'diamond' | 'unknown';
-export type BeautifyLevel = 'minimal' | 'light' | 'moderate' | 'strong' | 'gentle';
+export type BeautifyLevel = 'minimal' | 'light' | 'moderate' | 'strong' | 'gentle' | 'extreme' | 'maximum';
 
 export interface FacialFeatures {
   faceShape: FaceShape;
@@ -826,4 +826,81 @@ export function getBeautifyLevel(ageGroup: AgeGroup): BeautifyLevel {
     elderly: 'gentle'
   };
   return levelMap[ageGroup];
+}
+
+// 新增：重度美颜模式 -  beauty first, realism second
+export const HEAVY_BEAUTIFY_STRATEGY = {
+  level: 'maximum' as BeautifyLevel,
+  brightness: 'extreme',
+  faceSlimming: 'extreme',
+  eyeEnlargement: 'extreme',
+  skinSmoothing: 'maximum',
+  wrinkleRemoval: 'complete',
+  youthFactor: 15,
+  prompt: `
+    **HEAVY BEAUTY MODE - Beauty First, Maximum Enhancement:**
+
+    === BEAUTY PRIORITY #1 (Override realism) ===
+    - DRAMATIC brightening: increase overall brightness by 50-70%
+    - EXTREME skin smoothing: porcelain-like flawless skin, ZERO texture, ZERO pores
+    - COMPLETE wrinkle removal: remove ALL wrinkles, ALL lines, ALL blemishes
+    - AGGRESSIVE face slimming: dramatic V-line, small delicate face
+    - EXTREME eye enlargement: 1.5-2x larger eyes, bright sparkling
+    - HEAVY whitening: fair porcelain skin tone, glowing from within
+    - SIGNIFICANT anti-aging: look 15-20 years younger
+    - Teeth: bright white
+    - Lips: pink glossy
+    - Cheeks: rosy blush
+
+    === PHOTO STYLE (Still realistic, just heavily retouched) ===
+    - Professional beauty studio lighting (ring light + softbox)
+    - High-key bright lighting
+    - Shallow depth of field, blurred background
+    - Photo-realistic (NOT anime/3D/cartoon)
+    - Magazine cover quality
+    - Glamorous, attractive, stunning
+
+    === IDENTITY PRESERVATION (Only requirement) ===
+    - Must be recognizable as the same person
+    - Keep key facial features
+    - Just make them MUCH more beautiful
+
+    === FINAL EFFECT ===
+    - Like professional beauty app heavy filter
+    - Instagram/Snow/Meitu heavy beautify effect
+    - Flawless, glowing, glamorous
+    - Younger, brighter, more attractive
+  `.trim()
+};
+
+/**
+ * 重度美颜模式 - 直接返回最大美颜配置
+ */
+export function beautifyHeavy(analysis: string): {
+  context: BeautifyContext;
+  prompt: string;
+} {
+  const context = analyzeForBeautify(analysis);
+
+  // 强制使用最大美颜策略，无视年龄
+  const parts = [
+    '// === HEAVY BEAUTIFICATION MODE ===',
+    '',
+    HEAVY_BEAUTIFY_STRATEGY.prompt,
+    '',
+    '// === Original Analysis (for reference) ===',
+    analysis,
+    '',
+    '// === Key Requirements ===',
+    '- Beauty priority: Make them look as beautiful as possible',
+    '- Heavy retouching: Smooth skin, big eyes, small face',
+    '- Dramatic brightening: Bright, glowing, luminous',
+    '- Significant anti-aging: 15-20 years younger',
+    '- Identity: Must still be recognizable'
+  ];
+
+  return {
+    context,
+    prompt: parts.join('\n')
+  };
 }

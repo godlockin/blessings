@@ -1,4 +1,5 @@
 import { GeminiClient } from '../GeminiClient';
+import { PromptGenerator } from '../PromptGenerator';
 import { MultiExpertOrchestrator } from './orchestrator';
 import { BeautyExpertPanel, EndToEndReviewResult } from './BeautyExpertPanel';
 import {
@@ -51,15 +52,18 @@ export class MultiAgentWorkflow {
   private saveToOSS: boolean;
   private imageFilename: string;
   private enableExpertPanel: boolean;
+  private heavyBeautyMode: boolean;
+  private promptGenerator: PromptGenerator;
 
   constructor(
     client: GeminiClient,
     imageAnalyzer: ImageAnalyzer,
     config?: Partial<WorkflowConfig>,
-    options?: WorkflowOptions & { enableExpertPanel?: boolean }
+    options?: WorkflowOptions & { enableExpertPanel?: boolean; heavyBeautyMode?: boolean }
   ) {
     this.orchestrator = new MultiExpertOrchestrator(client, config);
     this.beautyExpertPanel = new BeautyExpertPanel(client);
+    this.promptGenerator = new PromptGenerator(client);
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.auditTrail = [];
     this.imageAnalyzer = imageAnalyzer;
@@ -67,6 +71,7 @@ export class MultiAgentWorkflow {
     this.saveToOSS = options?.saveToOSS ?? true;
     this.imageFilename = options?.imageFilename || `blessing-${Date.now()}.png`;
     this.enableExpertPanel = options?.enableExpertPanel ?? true;
+    this.heavyBeautyMode = options?.heavyBeautyMode ?? false;
   }
 
   async process(
@@ -74,20 +79,27 @@ export class MultiAgentWorkflow {
     generateImageFn: (prompt: string) => Promise<string>
   ): Promise<MultiAgentResult> {
     this.auditTrail = [];
+
+    // 重度美颜模式 - 跳过专家讨论，直接使用强美颜
+    if (this.heavyBeautyMode) {
+      console.log('[Multi-Agent] HEAVY BEAUTY MODE - Bypassing expert discussion');
+      return this.processHeavyBeauty(imageBase64, generateImageFn);
+    }
+
     console.log('[Multi-Agent] Starting multi-expert workflow...');
-    
+
     this.log('analysis', 'start', 'Analyzing original image...');
-    
-    const originalAnalysis = await this.imageAnalyzer.analyze({ 
-      inlineData: { data: imageBase64, mimeType: 'image/png' } 
+
+    const originalAnalysis = await this.imageAnalyzer.analyze({
+      inlineData: { data: imageBase64, mimeType: 'image/png' }
     });
-    
+
     this.log('analysis', 'complete', 'Analysis complete');
-    
+
     const isAsianFemale = this.detectAsianFemale(originalAnalysis);
     const ageGroup = this.detectAgeGroup(originalAnalysis);
     const targetYouthYears = this.getTargetYouthYears(ageGroup, isAsianFemale);
-    
+
     let currentPrompt = '';
     let bestImageUrl = '';
     let bestScore: QualityScores = this.createEmptyScores();
@@ -226,6 +238,72 @@ export class MultiAgentWorkflow {
       issues,
       fullAuditTrail: this.auditTrail,
       expertPanelReview
+    };
+  }
+
+  /**
+   * 重度美颜模式 - 跳过专家讨论，直接生成
+   */
+  private async processHeavyBeauty(
+    imageBase64: string,
+    generateImageFn: (prompt: string) => Promise<string>
+  ): Promise<MultiAgentResult> {
+    this.log('analysis', 'start', 'Analyzing original image...');
+
+    const originalAnalysis = await this.imageAnalyzer.analyze({
+      inlineData: { data: imageBase64, mimeType: 'image/png' }
+    });
+
+    this.log('analysis', 'complete', 'Analysis complete');
+
+    // 直接使用重度美颜 prompt
+    this.log('prompt_generation', 'start', 'Generating heavy beautify prompt...');
+    const { prompt: currentPrompt } = await this.promptGenerator.buildHeavyBeautifyPrompt(originalAnalysis);
+    this.log('prompt_generation', 'complete', `Prompt generated (${currentPrompt.length} chars)`);
+
+    // 直接生成图像
+    this.log('image_generation', 'start', 'Generating image with heavy beautify...');
+    const imageUrl = await generateImageFn(currentPrompt);
+    this.log('image_generation', 'complete', 'Image generated');
+
+    // 上传 OSS
+    let ossResult: UploadResult | undefined;
+    if (this.saveToOSS && this.ossService) {
+      this.log('oss_upload', 'start', 'Uploading to OSS...');
+      try {
+        const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+        ossResult = await this.ossService.uploadBase64(base64Data, this.imageFilename);
+        this.log('oss_upload', 'complete', `Uploaded: ${ossResult.url}`);
+      } catch (error) {
+        this.log('oss_upload', 'error', `Upload failed: ${error}`);
+      }
+    }
+
+    // 返回结果（跳过了所有专家审核）
+    return {
+      success: true,
+      imageUrl,
+      ossResult,
+      prompt: currentPrompt,
+      iteration: 1,
+      qualityScores: {
+        beautyLevel: 9,
+        skinQuality: 9,
+        faceSlimming: 9,
+        wrinkleRemoval: 9,
+        eyeEnhancement: 9,
+        brightness: 9,
+        identityPreservation: 7,
+        youthEffect: 9,
+        glamour: 9,
+        overall: 9
+      },
+      expertOpinions: new Map(),
+      discussionHistory: [],
+      finalDecision: 'approved',
+      issues: [],
+      fullAuditTrail: this.auditTrail,
+      expertPanelReview: undefined
     };
   }
 

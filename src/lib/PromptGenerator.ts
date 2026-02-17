@@ -1,5 +1,5 @@
 import { GeminiClient } from './GeminiClient';
-import { beautify, type AgeGroup, type BeautifyContext } from './Beautifier';
+import { beautify, beautifyHeavy, type AgeGroup, type BeautifyContext } from './Beautifier';
 import type { GenerationContext } from './ImageReviewer';
 
 export class PromptGenerator {
@@ -90,6 +90,81 @@ export class PromptGenerator {
     ${isAsianFemale ? '针对中国/亚洲女士强化要求：强力瘦脸（V-line下颌、尖下巴、小脸效果）；深度去皱（消除所有皱纹）；显著减龄12-15岁；紧致提升面部轮廓；大眼效果；磨皮祛痘去闭口；看起来比本人好看很多，但依然真实自然。' : ''}
     
     请只输出英文Prompt内容，不要包含其他解释。`;
+
+    const finalContext: GenerationContext = {
+      originalAnalysis: analysisText,
+      prompt,
+      ageGroup: context.ageGroup,
+      isAsianFemale
+    };
+
+    return {
+      prompt: await this.client.generateContent(prompt),
+      context: finalContext
+    };
+  }
+
+  /**
+   * 重度美颜模式 -  beauty first
+   */
+  async buildHeavyBeautifyPrompt(analysisText: string): Promise<{ prompt: string; context: GenerationContext }> {
+    const { context, prompt: beautifyPrompt } = beautifyHeavy(analysisText);
+
+    const isAsianFemale = context.ethnicity === 'asian' && context.gender === 'female';
+    const isMale = context.gender === 'male';
+
+    const clothingInstruction = isMale
+      ? 'Wearing luxurious traditional Chinese Tang suit in vibrant red with intricate gold embroidery, mandarin collar with jade buttons, elegant and noble appearance'
+      : 'Wearing elegant traditional Chinese Qipao in vibrant red silk with delicate gold embroidery, high mandarin collar, form-fitting silhouette showing graceful curves';
+
+    const prompt = `Generate a HEAVILY BEAUTIFIED Chinese New Year portrait photo with MAXIMUM beauty enhancement:
+
+**SUBJECT DESCRIPTION:**
+${analysisText}
+
+**AGGRESSIVE BEAUTIFICATION REQUIREMENTS:**
+${beautifyPrompt}
+
+**ADDITIONAL BEAUTY ENHANCEMENTS:**
+- Overall image brightness increased by 60-80%
+- Heavy skin smoothing: completely flawless, poreless, porcelain-like skin
+- Dramatic face slimming: small V-line face, delicate jawline
+- Extreme eye enlargement: big bright sparkling eyes with dramatic catchlights
+- Complete wrinkle removal: zero wrinkles, zero fine lines
+- Heavy anti-aging: looks 15-20 years younger
+- Skin whitening: fair glowing porcelain complexion
+- Teeth brightening: dazzling white smile
+- Lip enhancement: glossy pink lips
+- Rosy cheek blush: healthy vibrant flush
+- Professional makeup: full glam look with defined features
+
+**CLOTHING & SCENE:**
+${clothingInstruction}
+
+**BACKGROUND:**
+- Festive Chinese New Year scene with red lanterns and golden decorations
+- Warm celebratory lighting with bokeh effects
+- Traditional Chinese architectural elements
+- Rich red and gold color palette symbolizing prosperity
+- Joyful and auspicious atmosphere
+
+**TECHNICAL SPECIFICATIONS:**
+- High-end beauty portrait photography style
+- Professional studio lighting with ring light and beauty dish
+- Soft focus dreamy effect
+- Shallow depth of field, beautifully blurred background
+- High-key bright and cheerful lighting
+- Magazine cover quality and composition
+- Photo-realistic (NOT anime/3D/cartoon)
+
+**CRITICAL - IDENTITY:**
+- Must remain recognizable as the same person
+- Enhance beauty while preserving key facial features
+- Make them look like the BEST version of themselves
+
+${isAsianFemale ? 'HEAVY ASIAN BEAUTY ENHANCEMENT: Dramatic V-line face contouring, extreme eye enlargement with double eyelid effect, porcelain white smooth skin, small delicate facial features, glamorous K-beauty style makeup, 15+ years younger appearance' : ''}
+
+Style: Heavy beauty filter effect like Meitu/Snow/Instagram glam filter, magazine cover quality, stunning and attractive.`;
 
     const finalContext: GenerationContext = {
       originalAnalysis: analysisText,

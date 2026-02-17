@@ -17,12 +17,8 @@ export class MultiExpertOrchestrator {
   constructor(client: GeminiClient, config?: Partial<WorkflowConfig>) {
     this.client = client;
     this.config = { ...DEFAULT_CONFIG, ...config };
+    // 默认只保留美颜相关的专家
     this.activeExperts = [
-      'portrait_photographer',
-      'story_director',
-      'senior_makeup_artist',
-      'senior_costume_designer',
-      'senior_retoucher',
       'beauty_expert',
       'chinese_retoucher',
       'japanese_makeup_artist',

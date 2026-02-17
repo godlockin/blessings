@@ -215,8 +215,9 @@ export const onRequestPost = async (context: CloudflareContext) => {
     cleanupInterval = setInterval(() => {
       // Force garbage collection hint - only in development
       // In production, rely on Cloudflare's automatic GC
-      if (global.gc && env.ENVIRONMENT !== 'production') {
-        global.gc();
+      const g = globalThis as typeof globalThis & { gc?: () => void };
+      if (g.gc && env.ENVIRONMENT !== 'production') {
+        g.gc();
       }
     }, MEMORY_CLEANUP_INTERVAL);
   };
