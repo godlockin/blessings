@@ -25,6 +25,20 @@ const RETRY_DELAY_BASE = 1000;
 const REQUEST_TIMEOUT = 300000; // 5 minutes
 const MEMORY_CLEANUP_INTERVAL = 5000; // 5 seconds
 
+/**
+ * Constant-time string comparison to prevent timing attacks
+ */
+function constantTimeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 // Utility functions for security
 const sanitizeInput = (input: string): string => {
   return input.trim().replace(/[<>&'&]/g, '');
@@ -172,7 +186,9 @@ export const onRequestPost = async (context: CloudflareContext) => {
     'Connection': 'keep-alive',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block'
+    'X-XSS-Protection': '1; mode=block',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'Content-Security-Policy': "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'"
   };
 
   // Create a TransformStream for SSE with error handling
@@ -197,8 +213,9 @@ export const onRequestPost = async (context: CloudflareContext) => {
   // Memory cleanup function
   const startMemoryCleanup = (): void => {
     cleanupInterval = setInterval(() => {
-      // Force garbage collection hint
-      if (global.gc) {
+      // Force garbage collection hint - only in development
+      // In production, rely on Cloudflare's automatic GC
+      if (global.gc && env.ENVIRONMENT !== 'production') {
         global.gc();
       }
     }, MEMORY_CLEANUP_INTERVAL);
@@ -247,9 +264,10 @@ export const onRequestPost = async (context: CloudflareContext) => {
       }
 
       const sanitizedCode = sanitizeInput(body.inviteCode);
-      
-      // 1. Verify Invite Code
-      if (sanitizedCode !== env.INVITE_CODE) {
+
+      // 1. Verify Invite Code (use constant-time comparison)
+      const isValidCode = constantTimeCompare(sanitizedCode, env.INVITE_CODE);
+      if (!isValidCode) {
         await sendEvent('error', { message: 'Invalid invite code' });
         return;
       }

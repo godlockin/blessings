@@ -1,10 +1,13 @@
-export type ExpertRole = 
+export type ExpertRole =
   | 'portrait_photographer'
   | 'story_director'
   | 'senior_makeup_artist'
   | 'senior_costume_designer'
   | 'senior_retoucher'
   | 'beauty_expert'
+  | 'chinese_retoucher'
+  | 'japanese_makeup_artist'
+  | 'korean_surgeon'
   | 'final_reviewer';
 
 export interface ExpertInfo {
@@ -50,6 +53,24 @@ export const EXPERTS: Record<ExpertRole, ExpertInfo> = {
     name: 'Dr. Sarah Kim',
     title: 'Beauty Enhancement Specialist',
     expertise: ['face_slimming', 'wrinkle_removal', 'skin_smoothing', 'youth_enhancement', 'natural_beauty']
+  },
+  chinese_retoucher: {
+    role: 'chinese_retoucher',
+    name: 'Zhang Mei',
+    title: 'Chinese Beauty Retouching Master',
+    expertise: ['meitu_style', 'xingtu_filters', 'natural_beauty', 'skin_perfection', 'detail_enhancement']
+  },
+  japanese_makeup_artist: {
+    role: 'japanese_makeup_artist',
+    name: 'Yuki Tanaka',
+    title: 'Japanese Makeup Artist',
+    expertise: ['transparent_makeup', 'natural_glow', 'soft_focus', 'elegant_minimalism', 'serene_beauty']
+  },
+  korean_surgeon: {
+    role: 'korean_surgeon',
+    name: 'Dr. Park Ji-hoon',
+    title: 'Korean Plastic Surgery Consultant',
+    expertise: ['facial_contouring', 'v_line_optimization', 'feature_harmony', 'golden_ratio', 'natural_enhancement']
   },
   final_reviewer: {
     role: 'final_reviewer',

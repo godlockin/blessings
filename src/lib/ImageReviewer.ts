@@ -1,5 +1,20 @@
 import { GeminiClient } from './GeminiClient';
 
+/**
+ * Default score values used when review fails or cannot parse response
+ * Represents a neutral/unknown quality assessment
+ */
+const DEFAULT_SCORES: ReviewCriteria = {
+  realism: 5,
+  skinQuality: 5,
+  faceSlimming: 5,
+  wrinkleRemoval: 5,
+  eyeEnhancement: 5,
+  brightness: 5,
+  identityPreservation: 5,
+  overallScore: 5
+} as const;
+
 export interface ReviewCriteria {
   realism: number;
   skinQuality: number;
@@ -45,8 +60,7 @@ export class ImageReviewer {
   }
 
   async reviewGeneratedImage(
-    context: GenerationContext,
-    _imageUrl: string
+    context: GenerationContext
   ): Promise<ReviewResult> {
     const reviewPrompt = this.buildReviewPrompt(context);
     const response = await this.client.generateContent(reviewPrompt);
@@ -170,16 +184,7 @@ Please reply in the following JSON format only:
   private createFailedResult(error: string, iteration: number): ReviewResult {
     return {
       passed: false,
-      score: {
-        realism: 5,
-        skinQuality: 5,
-        faceSlimming: 5,
-        wrinkleRemoval: 5,
-        eyeEnhancement: 5,
-        brightness: 5,
-        identityPreservation: 5,
-        overallScore: 5
-      },
+      score: { ...DEFAULT_SCORES },
       issues: [error],
       suggestions: ['Please regenerate'],
       iteration
@@ -234,7 +239,7 @@ Output only the optimized prompt, no explanations.`;
       const imageUrlResult = await generateImageFn(currentPrompt);
       finalImageUrl = imageUrlResult;
 
-      const reviewResult = await this.reviewGeneratedImage(context, imageUrlResult);
+      const reviewResult = await this.reviewGeneratedImage(context);
       reviewResult.iteration = iteration;
       reviewHistory.push(reviewResult);
 

@@ -25,6 +25,7 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
     steps: STEP_CONFIG.map(s => ({ ...s })),
     logs: [],
     errorMessage: null,
+    fileError: null, // Added for client-side file validation errors
   });
 
   // Cleanup on unmount
@@ -65,6 +66,7 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
       steps: STEP_CONFIG.map(s => ({ ...s, status: 'pending' })),
       logs: [],
       errorMessage: null,
+      fileError: null, // Reset file error on reset
     });
   }, []);
 
@@ -75,10 +77,18 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
       preview,
       result: null,
       errorMessage: null,
+      fileError: null, // Clear file error when new file is set
       steps: STEP_CONFIG.map(s => ({ ...s, status: 'pending' })),
       logs: [] // Clear logs on new file
     }));
     log('File loaded successfully');
+  }, [log]);
+
+  const setFileError = useCallback((error: string | null) => {
+    if (error) {
+      log(`File validation error: ${error}`);
+    }
+    setState(prev => ({ ...prev, fileError: error }));
   }, [log]);
 
   const processServerSentEvents = useCallback(async (
@@ -271,6 +281,7 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
   return {
     state,
     setFile,
+    setFileError, // Export for client-side file validation errors
     startProcessing,
     cancelProcessing,
     resetState

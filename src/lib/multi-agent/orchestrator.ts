@@ -24,6 +24,9 @@ export class MultiExpertOrchestrator {
       'senior_costume_designer',
       'senior_retoucher',
       'beauty_expert',
+      'chinese_retoucher',
+      'japanese_makeup_artist',
+      'korean_surgeon',
       'final_reviewer'
     ];
   }
@@ -153,7 +156,11 @@ export class MultiExpertOrchestrator {
     const retoucherScore = expertScores.get('senior_retoucher') || 5;
     const storyScore = expertScores.get('story_director') || 5;
     const beautyScore = expertScores.get('beauty_expert') || 5;
-    
+    // CJK Expert Panel scores - included in overall quality calculation
+    const chineseScore = expertScores.get('chinese_retoucher') || 5;
+    const japaneseScore = expertScores.get('japanese_makeup_artist') || 5;
+    const koreanScore = expertScores.get('korean_surgeon') || 5;
+
     const prompt = FINAL_REVIEW_PROMPT
       .replace('{{agreedRequirements}}', JSON.stringify(agreedRequirements, null, 2))
       .replace('{{originalAnalysis}}', originalAnalysis)
@@ -168,8 +175,9 @@ export class MultiExpertOrchestrator {
     
     try {
       const parsed = JSON.parse(response);
-      const overall = parsed.detailed_scores?.overall || 
-        (photographerScore + makeupScore + costumeScore + retoucherScore + storyScore + beautyScore) / 6;
+      const overall = parsed.detailed_scores?.overall ||
+        (photographerScore + makeupScore + costumeScore + retoucherScore + storyScore + beautyScore +
+         chineseScore + japaneseScore + koreanScore) / 9;
       
       return {
         approved: parsed.approved || overall >= this.config.passingScore,
@@ -190,7 +198,8 @@ export class MultiExpertOrchestrator {
         suggestions: parsed.suggestions || []
       };
     } catch {
-      const overall = (photographerScore + makeupScore + costumeScore + retoucherScore + storyScore + beautyScore) / 6;
+      const overall = (photographerScore + makeupScore + costumeScore + retoucherScore + storyScore + beautyScore +
+                       chineseScore + japaneseScore + koreanScore) / 9;
       return {
         approved: overall >= this.config.passingScore,
         scores: {

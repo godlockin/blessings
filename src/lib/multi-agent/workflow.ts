@@ -1,12 +1,13 @@
 import { GeminiClient } from '../GeminiClient';
 import { MultiExpertOrchestrator } from './orchestrator';
-import { 
-  ExpertRole, 
-  ExpertOpinion, 
-  QualityScores, 
-  WorkflowState, 
+import { BeautyExpertPanel, EndToEndReviewResult } from './BeautyExpertPanel';
+import {
+  ExpertRole,
+  ExpertOpinion,
+  QualityScores,
+  WorkflowState,
   WorkflowConfig,
-  DEFAULT_CONFIG 
+  DEFAULT_CONFIG
 } from './types';
 import type { ImageAnalyzer } from '../ImageAnalyzer';
 import { OSSService, UploadResult } from '../OSSService';
@@ -31,6 +32,7 @@ export interface MultiAgentResult {
   finalDecision: 'approved' | 'rejected' | 'needs_revision';
   issues: string[];
   fullAuditTrail: AuditEntry[];
+  expertPanelReview?: EndToEndReviewResult | undefined;
 }
 
 export interface WorkflowOptions {
@@ -41,27 +43,30 @@ export interface WorkflowOptions {
 
 export class MultiAgentWorkflow {
   private orchestrator: MultiExpertOrchestrator;
+  private beautyExpertPanel: BeautyExpertPanel;
   private config: WorkflowConfig;
   private auditTrail: AuditEntry[];
   private imageAnalyzer: ImageAnalyzer;
   private ossService: OSSService | null;
   private saveToOSS: boolean;
   private imageFilename: string;
+  private enableExpertPanel: boolean;
 
   constructor(
     client: GeminiClient,
     imageAnalyzer: ImageAnalyzer,
     config?: Partial<WorkflowConfig>,
-    options?: WorkflowOptions
+    options?: WorkflowOptions & { enableExpertPanel?: boolean }
   ) {
     this.orchestrator = new MultiExpertOrchestrator(client, config);
-    void client; // Reference to silence unused warning
+    this.beautyExpertPanel = new BeautyExpertPanel(client);
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.auditTrail = [];
     this.imageAnalyzer = imageAnalyzer;
     this.ossService = options?.ossService || null;
     this.saveToOSS = options?.saveToOSS ?? true;
     this.imageFilename = options?.imageFilename || `blessing-${Date.now()}.png`;
+    this.enableExpertPanel = options?.enableExpertPanel ?? true;
   }
 
   async process(
@@ -87,7 +92,7 @@ export class MultiAgentWorkflow {
     let bestImageUrl = '';
     let bestScore: QualityScores = this.createEmptyScores();
     let expertOpinions = new Map<ExpertRole, ExpertOpinion>();
-    let discussionHistory: WorkflowState['discussionHistory'] = [];
+    const discussionHistory: WorkflowState['discussionHistory'] = [];
     let finalDecision: 'approved' | 'rejected' | 'needs_revision' = 'needs_revision';
     let issues: string[] = [];
     let ossResult: UploadResult | undefined;
@@ -101,27 +106,26 @@ export class MultiAgentWorkflow {
       this.log('expert_individual_analysis', 'complete', `All ${expertOpinions.size} experts completed`);
       
       this.log('group_discussion', 'start', 'Facilitating expert discussion...');
-      const { consensus, agreedRequirements, remainingDisagreements: _disagreements } = 
-        await this.orchestrator.facilitateDiscussion(
-          originalAnalysis,
-          expertOpinions,
-          isAsianFemale,
-          ageGroup,
-          targetYouthYears
-        );
+      const discussionResult = await this.orchestrator.facilitateDiscussion(
+        originalAnalysis,
+        expertOpinions,
+        isAsianFemale,
+        ageGroup,
+        targetYouthYears
+      );
       
       discussionHistory.push({
         round: iteration,
         topic: 'consensus_building',
         opinions: Array.from(expertOpinions.values()),
-        consensus
+        consensus: discussionResult.consensus
       });
-      
+
       this.log('group_discussion', 'complete', 'Consensus reached');
-      
+
       currentPrompt = await this.orchestrator.generateUnifiedPrompt(
         originalAnalysis,
-        agreedRequirements,
+        discussionResult.agreedRequirements,
         expertOpinions
       );
       
@@ -149,7 +153,7 @@ export class MultiAgentWorkflow {
       const reviewResult = await this.orchestrator.conductFinalReview(
         originalAnalysis,
         imageUrl,
-        agreedRequirements,
+        discussionResult.agreedRequirements,
         expertScores
       );
       
@@ -178,7 +182,37 @@ export class MultiAgentWorkflow {
         }
       }
     }
-    
+
+    // 跨国美颜专家组端到端审核
+    let expertPanelReview: EndToEndReviewResult | undefined;
+    if (this.enableExpertPanel && finalDecision === 'approved') {
+      this.log('expert_panel', 'start', 'Conducting CJK Beauty Expert Panel review...');
+      try {
+        const generatedBase64 = bestImageUrl.replace(/^data:image\/\w+;base64,/, '');
+        expertPanelReview = await this.beautyExpertPanel.conductEndToEndReview(
+          imageBase64,
+          generatedBase64,
+          originalAnalysis
+        );
+
+        // 打印专家组审核报告
+        console.log(this.beautyExpertPanel.generateReviewReport(expertPanelReview));
+
+        // 如果专家组审核不通过，更新最终结果
+        if (expertPanelReview.finalDecision !== 'approved') {
+          finalDecision = expertPanelReview.finalDecision;
+          issues = [...issues, ...expertPanelReview.visualValidation.issues];
+          console.log(`[Expert Panel] Overriding decision: ${finalDecision}`);
+        }
+
+        this.log('expert_panel', 'complete',
+          `Panel decision: ${expertPanelReview.finalDecision}, Score: ${expertPanelReview.consensus.overallScore}/10`);
+      } catch (error) {
+        console.error('[Expert Panel] Review failed:', error);
+        this.log('expert_panel', 'error', `Review failed: ${error}`);
+      }
+    }
+
     return {
       success: finalDecision === 'approved',
       imageUrl: bestImageUrl,
@@ -190,7 +224,8 @@ export class MultiAgentWorkflow {
       discussionHistory,
       finalDecision,
       issues,
-      fullAuditTrail: this.auditTrail
+      fullAuditTrail: this.auditTrail,
+      expertPanelReview
     };
   }
 
@@ -284,8 +319,33 @@ export class MultiAgentWorkflow {
   generateReport(result: MultiAgentResult): string {
     const status = result.success ? 'SUCCESS' : 'FAILED';
     const decision = result.finalDecision.toUpperCase();
-    
-    let report = `
+
+    // 构建专家组审核信息
+    let expertPanelInfo = '';
+    if (result.expertPanelReview) {
+      const panel = result.expertPanelReview;
+      const reviews = panel.expertReviews;
+      expertPanelInfo = `
+╠══════════════════════════════════════════════════════════════════════╣
+║  🇨🇳🇯🇵🇰🇷 CJK BEAUTY EXPERT PANEL REVIEW                             ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  Panel Decision: ${panel.finalDecision.toUpperCase().padEnd(52)} ║
+║  Consensus Score: ${panel.consensus.overallScore.toFixed(1)}/10${' '.repeat(40)} ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  Chinese Retoucher (Zhang Mei)     : ${reviews[0]?.score.toFixed(1).padEnd(4)}/10  ${reviews[0]?.approved ? '✅' : '❌'}           ║
+║  Japanese Makeup (Yuki Tanaka)     : ${reviews[1]?.score.toFixed(1).padEnd(4)}/10  ${reviews[1]?.approved ? '✅' : '❌'}           ║
+║  Korean Surgeon (Dr. Park)         : ${reviews[2]?.score.toFixed(1).padEnd(4)}/10  ${reviews[2]?.approved ? '✅' : '❌'}           ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  Identity Preservation : ${panel.consensus.identityPreservation.toFixed(1)}/10  ${panel.consensus.identityPreservation >= 8 ? '✅' : '⚠️'}                   ║
+║  Naturalness          : ${panel.consensus.naturalness.toFixed(1)}/10  ${panel.consensus.naturalness >= 8 ? '✅' : '⚠️'}                   ║
+║  Beauty Enhancement   : ${panel.consensus.beautyEnhancement.toFixed(1)}/10  ${panel.consensus.beautyEnhancement >= 8 ? '✅' : '⚠️'}                   ║
+║  Charm & Attractiveness: ${panel.consensus.attractiveness.toFixed(1)}/10  ${panel.consensus.attractiveness >= 8 ? '✅' : '⚠️'}                   ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  Visual Validation: ${panel.visualValidation.passed ? '✅ PASSED' : '❌ FAILED'}                                           ║
+${panel.visualValidation.issues.length > 0 ? `║  Issues: ${panel.visualValidation.issues.length} found${' '.repeat(45)} ║\n` : ''}`;
+    }
+
+    const report = `
 ╔══════════════════════════════════════════════════════════════════════╗
 ║           MULTI-EXPERT WORKFLOW FINAL REPORT                      ║
 ╠══════════════════════════════════════════════════════════════════════╣
@@ -303,6 +363,7 @@ export class MultiAgentWorkflow {
 ║  Brightness:          ${result.qualityScores.brightness.toFixed(1)}/10                              ║
 ║  Identity Preservation: ${result.qualityScores.identityPreservation.toFixed(1)}/10                           ║
 ║  OVERALL:             ${result.qualityScores.overall.toFixed(1)}/10                              ║
+${expertPanelInfo}
 ╠══════════════════════════════════════════════════════════════════════╣
 ║  OSS UPLOAD                                                          ║
 ║  ${result.ossResult ? `URL: ${result.ossResult.url.substring(0, 50)}...` : 'Not uploaded'}                          ║

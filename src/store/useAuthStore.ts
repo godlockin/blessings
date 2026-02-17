@@ -11,6 +11,13 @@ interface AuthState {
   checkSessionValidity: () => boolean;
 }
 
+/**
+ * Strict validation pattern for invite codes.
+ * Allows alphanumeric characters, hyphens, and underscores.
+ * Minimum 8 characters, maximum 32 characters.
+ */
+const INVITE_CODE_PATTERN = /^[A-Za-z0-9_-]{8,32}$/;
+
 // Simple wrapper for storage to handle session expiry logic
 const authStorage = {
   getItem: (name: string): string | null => {
@@ -55,13 +62,17 @@ export const useAuthStore = create<AuthState>()(
       sessionExpiry: null,
       
       setInviteCode: (code: string) => {
-        // Validate and sanitize invite code
-        const sanitizedCode = code.trim().replace(/[<>'&]/g, '');
-        if (sanitizedCode.length > 0 && sanitizedCode.length <= 50) {
-          set({ inviteCode: sanitizedCode });
-        } else {
-          throw new Error('Invalid invite code format');
+        // Validate invite code with strict pattern
+        const trimmedCode = code.trim();
+
+        if (!INVITE_CODE_PATTERN.test(trimmedCode)) {
+          throw new Error(
+            'Invalid invite code format. Code must be 8-32 characters and ' +
+            'contain only letters, numbers, hyphens, and underscores.'
+          );
         }
+
+        set({ inviteCode: trimmedCode });
       },
       
       setAuthenticated: (isAuthenticated: boolean) => {

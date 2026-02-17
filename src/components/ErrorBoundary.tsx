@@ -23,11 +23,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    this.state = {
-      hasError: true,
-      error,
-      errorInfo,
-    };
+    // Fixed: Use setState() instead of direct state mutation
+    // Note: getDerivedStateFromError already sets hasError, so we only need errorInfo
+    this.setState({ error, errorInfo });
     console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 

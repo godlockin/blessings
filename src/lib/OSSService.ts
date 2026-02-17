@@ -1,3 +1,33 @@
+/**
+ * Types for the ali-oss client interface
+ * Since ali-oss types may not be available, we define minimal interfaces
+ * for the methods we use
+ */
+
+interface OSSClient {
+  put(name: string, file: Buffer | string | File, options?: OSSPutOptions): Promise<OSSPutResult>;
+  signatureUrl(name: string, options?: OSSSignatureOptions): string; // ali-oss returns string, not Promise
+  delete(name: string): Promise<unknown>; // ali-oss returns DeleteResult, we treat as unknown
+  list(query: unknown, options: unknown): Promise<unknown>; // ali-oss list takes 2 arguments: query and options
+}
+
+interface OSSPutOptions {
+  headers?: Record<string, string>;
+}
+
+interface OSSPutResult {
+  name: string;
+  url: string;
+}
+
+interface OSSSignatureOptions {
+  expires: number;
+}
+
+interface OSSListResult {
+  objects?: Array<{ name: string }>;
+}
+
 export interface OSSConfig {
   region: string;
   accessKeyId: string;
@@ -22,7 +52,7 @@ export class OSSService {
   private config: OSSConfig;
   private pathPrefix: string;
   private expiresIn: number;
-  private client: any;
+  private client: OSSClient | null;
 
   constructor(config: OSSServiceConfig) {
     this.config = config.config;
@@ -33,17 +63,19 @@ export class OSSService {
     this.client = null;
   }
 
-  private async initClient(): Promise<any> {
-    if (this.client) return this.client;
-    
+  private async initClient(): Promise<OSSClient> {
+    if (this.client) {
+      return this.client;
+    }
+
     const OSS = (await import('ali-oss')).default;
     this.client = new OSS({
       region: this.config.region,
       accessKeyId: this.config.accessKeyId,
       accessKeySecret: this.config.accessKeySecret,
       bucket: this.config.bucket
-    });
-    
+    }) as OSSClient;
+
     return this.client;
   }
 
@@ -106,7 +138,8 @@ export class OSSService {
   async getSignedUrl(objectKey: string): Promise<string> {
     const client = await this.initClient();
     try {
-      const url = await client.signatureUrl(objectKey, {
+      // signatureUrl returns a string directly, not a Promise
+      const url = client.signatureUrl(objectKey, {
         expires: this.expiresIn
       });
       return url;
@@ -123,7 +156,7 @@ export class OSSService {
   async deleteImage(objectKey: string): Promise<boolean> {
     const client = await this.initClient();
     try {
-      await client.delete(objectKey);
+      await client.delete(objectKey) as Promise<unknown>;
       return true;
     } catch (error) {
       console.error('[OSS] Delete failed:', error);
@@ -134,11 +167,14 @@ export class OSSService {
   async listImages(prefix?: string, maxKeys: number = 100): Promise<string[]> {
     const client = await this.initClient();
     try {
-      const result = await client.list({
+      const query = {
         prefix: prefix || this.pathPrefix,
         'max-keys': maxKeys
-      });
-      return result.objects?.map((obj: any) => obj.name) || [];
+      };
+      const result = await client.list(query, {}) as unknown;
+      // Type guard to extract objects array from unknown result
+      const listResult = result as OSSListResult | undefined;
+      return listResult?.objects?.map((obj: { name: string }) => obj.name) || [];
     } catch (error) {
       console.error('[OSS] List failed:', error);
       return [];

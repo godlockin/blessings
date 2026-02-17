@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useMemo } from 'react';
 import { Upload, Download, RefreshCw, LogOut, Image as ImageIcon } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
@@ -13,15 +13,16 @@ export default function MainPage() {
   const { logout } = useAuthStore();
   
   // Use the new hook
-  const { 
-    state, 
-    setFile, 
-    startProcessing, 
-    cancelProcessing, 
-    resetState 
+  const {
+    state,
+    setFile,
+    setFileError,
+    startProcessing,
+    cancelProcessing,
+    resetState
   } = useImageProcessor();
 
-  const { preview, result, isProcessing, steps, logs, errorMessage } = state;
+  const { preview, result, isProcessing, steps, logs, errorMessage, fileError } = state;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = useCallback(() => {
@@ -32,12 +33,12 @@ export default function MainPage() {
 
   const processFile = useCallback(async (fileToProcess: File) => {
     if (!isValidImageFile(fileToProcess)) {
-      alert('不支持的文件格式，请使用 JPG、PNG 或 WebP');
+      setFileError('不支持的文件格式，请使用 JPG、PNG 或 WebP');
       return;
     }
 
     if (fileToProcess.size > MAX_FILE_SIZE) {
-      alert(`文件大小超过限制 (${MAX_FILE_SIZE / 1024 / 1024}MB)`);
+      setFileError(`文件大小超过限制 (${MAX_FILE_SIZE / 1024 / 1024}MB)`);
       return;
     }
 
@@ -50,9 +51,9 @@ export default function MainPage() {
       setFile(fileToProcess, compressed.dataUrl);
     } catch (error) {
       console.error('File processing error:', error);
-      alert('文件读取失败');
+      setFileError('文件读取失败');
     }
-  }, [setFile]);
+  }, [setFile, setFileError]);
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -79,8 +80,12 @@ export default function MainPage() {
     fileInputRef.current?.click();
   };
 
-  const getCompletedStepsCount = () => steps.filter(s => s.status === 'completed').length;
-  const progress = steps.length > 0 ? (getCompletedStepsCount() / steps.length) * 100 : 0;
+  // Optimized: Use useMemo to avoid recalculation on every render
+  const progress = useMemo(() => {
+    if (steps.length === 0) return 0;
+    const completedCount = steps.filter(s => s.status === 'completed').length;
+    return (completedCount / steps.length) * 100;
+  }, [steps]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-bg">
@@ -229,6 +234,22 @@ export default function MainPage() {
                             <p className="font-bold mb-1">生成失败</p>
                             <p>{errorMessage}</p>
                         </div>
+                    </div>
+                )}
+                {fileError && (
+                    <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded-xl text-sm text-amber-600 dark:text-amber-400 flex items-start gap-3">
+                        <span className="text-lg">⚠️</span>
+                        <div className="flex-1">
+                            <p className="font-bold mb-1">文件错误</p>
+                            <p>{fileError}</p>
+                        </div>
+                        <button
+                            onClick={() => setFileError(null)}
+                            className="text-amber-400 hover:text-amber-600 dark:hover:text-amber-300"
+                            aria-label="关闭错误"
+                        >
+                            ×
+                        </button>
                     </div>
                 )}
                 </div>

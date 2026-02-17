@@ -8,6 +8,7 @@ export interface ProcessingState {
   steps: Step[];
   logs: string[];
   errorMessage: string | null;
+  fileError: string | null; // Client-side file validation errors
 }
 
 export type StepStatus = 'pending' | 'processing' | 'completed' | 'failed';
