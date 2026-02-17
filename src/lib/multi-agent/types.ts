@@ -91,15 +91,15 @@ export interface ExpertOpinion {
 }
 
 export interface QualityScores {
-  realism: number;
+  beautyLevel: number;
   skinQuality: number;
   faceSlimming: number;
   wrinkleRemoval: number;
   eyeEnhancement: number;
   brightness: number;
   identityPreservation: number;
-  composition: number;
-  lighting: number;
+  youthEffect: number;
+  glamour: number;
   overall: number;
 }
 

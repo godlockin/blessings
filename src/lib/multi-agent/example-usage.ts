@@ -68,7 +68,7 @@ export async function exampleWithExpertPanel() {
     console.log('\n=== 专家组共识 ===');
     console.log(`综合评分: ${panel.consensus.overallScore}/10`);
     console.log(`身份保持度: ${panel.consensus.identityPreservation}/10`);
-    console.log(`自然真实度: ${panel.consensus.naturalness}/10`);
+    console.log(`年轻感: ${panel.consensus.youth}/10`);
     console.log(`美颜提升度: ${panel.consensus.beautyEnhancement}/10`);
     console.log(`魅力指数: ${panel.consensus.charm}/10`);
     console.log(`吸引力评分: ${panel.consensus.attractiveness}/10`);

@@ -182,15 +182,15 @@ export class MultiExpertOrchestrator {
       return {
         approved: parsed.approved || overall >= this.config.passingScore,
         scores: {
-          realism: parsed.detailed_scores?.realism || photographerScore,
+          beautyLevel: parsed.detailed_scores?.beautyLevel || beautyScore,
           skinQuality: parsed.detailed_scores?.skinQuality || makeupScore,
-          faceSlimming: parsed.detailed_scores?.faceSlimming || beautyScore * 0.8,
-          wrinkleRemoval: parsed.detailed_scores?.wrinkleRemoval || beautyScore * 0.9,
-          eyeEnhancement: parsed.detailed_scores?.eyeEnhancement || makeupScore * 0.9,
+          faceSlimming: parsed.detailed_scores?.faceSlimming || beautyScore * 0.9,
+          wrinkleRemoval: parsed.detailed_scores?.wrinkleRemoval || beautyScore * 0.95,
+          eyeEnhancement: parsed.detailed_scores?.eyeEnhancement || makeupScore * 0.95,
           brightness: parsed.detailed_scores?.brightness || photographerScore * 0.9,
           identityPreservation: parsed.detailed_scores?.identityPreservation || 7,
-          composition: parsed.detailed_scores?.composition || storyScore * 0.8,
-          lighting: parsed.detailed_scores?.lighting || photographerScore * 0.9,
+          youthEffect: parsed.detailed_scores?.youthEffect || beautyScore * 0.9,
+          glamour: parsed.detailed_scores?.glamour || (beautyScore + makeupScore) / 2,
           overall
         },
         decision: parsed.final_decision || (overall >= this.config.passingScore ? 'approved' : 'needs_revision'),
@@ -203,15 +203,15 @@ export class MultiExpertOrchestrator {
       return {
         approved: overall >= this.config.passingScore,
         scores: {
-          realism: photographerScore,
+          beautyLevel: beautyScore,
           skinQuality: makeupScore,
-          faceSlimming: beautyScore * 0.8,
-          wrinkleRemoval: beautyScore * 0.9,
-          eyeEnhancement: makeupScore * 0.9,
+          faceSlimming: beautyScore * 0.9,
+          wrinkleRemoval: beautyScore * 0.95,
+          eyeEnhancement: makeupScore * 0.95,
           brightness: photographerScore * 0.9,
           identityPreservation: 7,
-          composition: storyScore * 0.8,
-          lighting: photographerScore * 0.9,
+          youthEffect: beautyScore * 0.9,
+          glamour: (beautyScore + makeupScore) / 2,
           overall
         },
         decision: overall >= this.config.passingScore ? 'approved' : 'needs_revision',

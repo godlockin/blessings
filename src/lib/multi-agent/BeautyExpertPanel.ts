@@ -26,7 +26,7 @@ export interface EndToEndReviewResult {
   consensus: {
     overallScore: number;
     identityPreservation: number;
-    naturalness: number;
+    youth: number;
     beautyEnhancement: number;
     charm: number;
     attractiveness: number;
@@ -99,44 +99,45 @@ export class BeautyExpertPanel {
 
   /**
    * 中国美颜修图师审核
-   * 专注：美图风格、自然美颜、皮肤质感、小V脸
+   * 专注：美图风格、美颜效果、皮肤提亮、大眼瘦脸
    */
   private async chineseRetoucherReview(
     originalImage: string,
     generatedImage: string,
     originalAnalysis: string
   ): Promise<ExpertReviewResult> {
-    const prompt = `你是中国顶级美颜修图师张美，有15年使用美图秀秀、醒图等软件的经验。
+    const prompt = `你是中国顶级美颜修图师张美，专研美图秀秀、醒图等软件的重度美颜效果。
 
-请对比分析原图和生成图，严格按照中国美颜审美标准进行评估。
+请对比分析原图和生成图，评估美颜效果（不要求真实，要求好看）。
 
 原图分析：${originalAnalysis}
 
-审核重点（中国美颜标准）：
-1. 自然美颜效果 - 是否像高品质美图修图后的照片
-2. 皮肤质感 - 是否白皙但有纹理（不假白、不塑料）
-3. 眼睛 - 是否自然放大、明亮有神
-4. 脸型 - 是否自然V脸，不夸张
-5. 气色 - 是否红润健康
-6. 真实度 - 是否看起来像真人，不是AI生成
+审核重点（重度美颜模式）：
+1. 美图效果 - 是否像高品质美图修图后的照片（重度美颜）
+2. 皮肤 - 是否白皙、光滑、磨皮效果好（不需要纹理）
+3. 眼睛 - 是否明显放大、明亮有神
+4. 脸型 - 是否明显瘦脸、小V脸
+5. 气色 - 是否红润、精神、年轻
+6. 减龄 - 是否看起来比原图年轻10-15岁
+7. 只要不像3D/动画即可
 
-评分标准：
-- 9-10分：完美，达到中国美颜APP顶级效果
-- 7-8分：良好，小瑕疵
-- 5-6分：一般，有明显人工痕迹
-- 3-4分：较差，明显AI感
-- 1-2分：失败，塑料感/不真实
+评分标准（美颜优先）：
+- 9-10分：完美 - 明显美白、大眼、瘦脸、年轻、 glamorous
+- 7-8分：良好美颜效果，小瑕疵
+- 5-6分：一般，美颜不够明显
+- 3-4分：较差，美颜效果弱
+- 1-2分：失败，或像3D/动画
 
 请输出JSON格式：
 {
   "score": 1-10,
   "specificScores": {
-    "meitu_quality": 1-10,
-    "skin_texture": 1-10,
-    "eye_enhancement": 1-10,
-    "face_contour": 1-10,
-    "complexion": 1-10,
-    "naturalness": 1-10
+    "beauty_level": 1-10,
+    "skin_brightness": 1-10,
+    "eye_enlargement": 1-10,
+    "face_slimming": 1-10,
+    "youth_effect": 1-10,
+    "overall_beauty": 1-10
   },
   "analysis": "详细分析...",
   "recommendations": ["建议1", "建议2"],
@@ -166,44 +167,44 @@ export class BeautyExpertPanel {
 
   /**
    * 日本化妆师审核
-   * 专注：透明感、日系自然妆、优雅简约
+   * 专注：透明感、光泽感、魅力妆容
    */
   private async japaneseMakeupArtistReview(
     originalImage: string,
     generatedImage: string,
     originalAnalysis: string
   ): Promise<ExpertReviewResult> {
-    const prompt = `你是日本顶级化妆师田中雪，专研日系透明感妆容（透明感メイク）。
+    const prompt = `你是日本顶级化妆师田中雪，专研日系魅力妆容（透明感・輝きメイク）。
 
-请对比分析原图和生成图，严格按照日本美妆审美标准进行评估。
+请对比分析原图和生成图，评估美颜效果（不要求自然，要求好看）。
 
 原图分析：${originalAnalysis}
 
-审核重点（日本美妆标准）：
-1. 透明感 - 皮肤是否有通透光泽，像日杂模特
-2. 自然光泽 - 是否水润不油腻（ツヤ肌）
-3. 眼妆 - 是否柔和自然，有深度但不浓重
-4. 唇妆 - 是否有自然渐变（グラデーションリップ）
-5. 整体气质 - 是否优雅简约，有品位
-6. 真实度 - 是否像真实的日系美妆照片
+审核重点（魅力美颜模式）：
+1. 透明感 - 皮肤是否透亮、有光泽、白皙
+2. 光泽感 - 是否水润明亮（ツヤ肌）
+3. 眼睛 - 是否放大、明亮、有神
+4. 魅力 - 整体是否吸引人、有气质
+5. 年轻感 - 是否看起来比原图更年轻
+6. 只要不像3D/动画即可
 
-评分标准：
-- 9-10分：完美日系透明感，如日本美妆杂志
-- 7-8分：良好，有日系感觉
-- 5-6分：一般，日系元素不够
-- 3-4分：较差，没有日系美感
-- 1-2分：失败，妆感过重
+评分标准（美颜优先）：
+- 9-10分：完美 - 透亮光泽、大眼、明亮、有魅力
+- 7-8分：良好美颜效果，小瑕疵
+- 5-6分：一般，美颜不够明显
+- 3-4分：较差，美颜效果弱
+- 1-2分：失败，或像3D/动画
 
 请输出JSON格式：
 {
   "score": 1-10,
   "specificScores": {
-    "transparency": 1-10,
-    "natural_glow": 1-10,
-    "eye_makeup": 1-10,
-    "lip_gradient": 1-10,
-    "elegance": 1-10,
-    "naturalness": 1-10
+    "radiance": 1-10,
+    "brightness": 1-10,
+    "eye_beauty": 1-10,
+    "charm": 1-10,
+    "youth": 1-10,
+    "overall_glow": 1-10
   },
   "analysis": "详细分析...",
   "recommendations": ["建议1", "建议2"],
@@ -233,46 +234,46 @@ export class BeautyExpertPanel {
 
   /**
    * 韩国整容师审核
-   * 专注：黄金比例、V脸轮廓、五官协调
+   * 专注：黄金比例、V脸轮廓、美颜效果
    */
   private async koreanSurgeonReview(
     originalImage: string,
     generatedImage: string,
     originalAnalysis: string
   ): Promise<ExpertReviewResult> {
-    const prompt = `你是韩国江南区顶级整容顾问朴智勋医生，专研自然系面部轮廓优化。
+    const prompt = `你是韩国江南区顶级整容顾问朴智勋医生，专研美颜级面部轮廓优化。
 
-请对比分析原图和生成图，严格按照韩国整容审美标准进行评估。
+请对比分析原图和生成图，评估美颜效果（不要求自然，要求好看）。
 
 原图分析：${originalAnalysis}
 
-审核重点（韩国整容标准）：
-1. 黄金比例 - 面部是否符合1:1.618黄金比例
-2. 面部轮廓 - 是否自然V脸，线条流畅
-3. 眼睛 - 是否有自然的双眼皮效果，大小适中
-4. 鼻子 - 鼻梁是否自然挺拔，鼻头精致
-5. 五官协调 - 所有部位是否和谐统一
-6. 身份保持 - 是否还能认出是同一个人
-7. 自然度 - 是否像天生美，不是整容感
+审核重点（美颜整容标准）：
+1. 黄金比例 - 面部比例是否更美观（不要太在意自然）
+2. 面部轮廓 - 是否明显瘦脸、小V脸
+3. 眼睛 - 是否明显放大、有神
+4. 鼻子 - 是否更精致、美观
+5. 五官协调 - 整体是否更和谐、好看
+6. 身份保持 - 必须能认出是同一个人
+7. 只要不像3D/动画即可
 
-评分标准：
-- 9-10分：完美黄金比例，自然和谐
-- 7-8分：良好，比例协调
-- 5-6分：一般，有改进空间
-- 3-4分：较差，不协调或整容感
-- 1-2分：失败，失真或整容脸
+评分标准（美颜优先）：
+- 9-10分：完美 - 明显瘦脸、大眼、精致、年轻10-15岁
+- 7-8分：良好美颜效果，小瑕疵
+- 5-6分：一般，美颜不够明显
+- 3-4分：较差，美颜效果弱
+- 1-2分：失败，或像3D/动画
 
 请输出JSON格式：
 {
   "score": 1-10,
   "specificScores": {
-    "golden_ratio": 1-10,
-    "facial_contour": 1-10,
-    "eye_shape": 1-10,
-    "nose_shape": 1-10,
+    "beauty_ratio": 1-10,
+    "v_line": 1-10,
+    "eye_size": 1-10,
+    "refinement": 1-10,
     "harmony": 1-10,
-    "identity_preservation": 1-10,
-    "naturalness": 1-10
+    "identity": 1-10,
+    "youth": 1-10
   },
   "analysis": "详细分析...",
   "recommendations": ["建议1", "建议2"],
@@ -310,22 +311,30 @@ export class BeautyExpertPanel {
     const overallScore = scores.reduce((a, b) => a + b, 0) / scores.length;
 
     // 提取特定维度的平均分
-    const identityPreservation = this.averageSpecificScore(reviews, 'identity_preservation');
-    const naturalness = this.averageSpecificScore(reviews, 'naturalness');
+    const identityPreservation = this.averageSpecificScore(reviews, 'identity') ||
+                                  this.averageSpecificScore(reviews, 'identity_preservation');
 
     // 计算魅力和吸引力（综合各专家的关键指标）
-    const beautyEnhancement = this.averageSpecificScore(reviews, 'meitu_quality') ||
-                               this.averageSpecificScore(reviews, 'transparency') ||
-                               this.averageSpecificScore(reviews, 'golden_ratio') ||
+    const beautyEnhancement = this.averageSpecificScore(reviews, 'beauty_level') ||
+                               this.averageSpecificScore(reviews, 'overall_beauty') ||
+                               this.averageSpecificScore(reviews, 'radiance') ||
+                               this.averageSpecificScore(reviews, 'beauty_ratio') ||
                                overallScore;
 
-    const charm = (this.averageSpecificScore(reviews, 'elegance') || overallScore) * 0.9;
-    const attractiveness = (beautyEnhancement + naturalness) / 2;
+    const youth = this.averageSpecificScore(reviews, 'youth') ||
+                  this.averageSpecificScore(reviews, 'youth_effect');
+
+    const charm = this.averageSpecificScore(reviews, 'charm') ||
+                  this.averageSpecificScore(reviews, 'eye_beauty') ||
+                  overallScore;
+
+    // 吸引力 = 美颜效果 + 年轻感 + 魅力
+    const attractiveness = (beautyEnhancement + youth + charm) / 3;
 
     return {
       overallScore: Math.round(overallScore * 10) / 10,
       identityPreservation: Math.round(identityPreservation * 10) / 10 || 7,
-      naturalness: Math.round(naturalness * 10) / 10 || 7,
+      youth: Math.round(youth * 10) / 10 || 7,
       beautyEnhancement: Math.round(beautyEnhancement * 10) / 10,
       charm: Math.round(charm * 10) / 10,
       attractiveness: Math.round(attractiveness * 10) / 10
@@ -389,19 +398,18 @@ ${uniqueConcerns.map((c, i) => `${i + 1}. ${c}`).join('\n')}
 **专家建议**：
 ${keyRecommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}
 
-**优化方向**：
-- 保持真实自然，拒绝塑料感
-- 增强五官协调和黄金比例
-- 提升皮肤质感和透明感
-- 确保身份100%可识别
-- 让中国美颜、日系透明感、韩系比例完美融合
+**美颜优化方向（优先级从高到低）**：
+1. 大幅提亮整体画面 - 皮肤白皙透亮
+2. 明显放大眼睛 - 大眼有神
+3. 明显瘦脸 - 小V脸效果
+4. 完全去除皱纹 - 磨皮美肤
+5. 减龄10-15岁 - 年轻有活力
+6. 提升整体气质和吸引力
 
-**严格要求**：
-1. 必须看起来像真人照片，不是AI生成
-2. 皮肤必须有可见毛孔和纹理
-3. 五官必须协调，符合黄金比例
-4. 必须是同一个人，不能改变身份特征
-5. 美颜效果要自然，像高品质修图APP效果
+**基本要求**：
+1. 必须能认出是同一个人（身份保持）
+2. 不能看起来像3D建模或动画
+3. 照片风格，但有明显的美颜效果
 `;
 
     return improvementGuide;
@@ -521,8 +529,8 @@ ${keyRecommendations.map((r, i) => `${i + 1}. ${r}`).join('\n')}
 ╠══════════════════════════════════════════════════════════════════╣
 ║ 综合评估指标                                                     ║
 ╠══════════════════════════════════════════════════════════════════╣
-║ 身份保持度     : ${result.consensus.identityPreservation.toFixed(1)}/10  ${result.consensus.identityPreservation >= 8 ? '✅' : '⚠️'}                   ║
-║ 自然真实度     : ${result.consensus.naturalness.toFixed(1)}/10  ${result.consensus.naturalness >= 8 ? '✅' : '⚠️'}                   ║
+║ 身份保持度     : ${result.consensus.identityPreservation.toFixed(1)}/10  ${result.consensus.identityPreservation >= 6 ? '✅' : '⚠️'}                   ║
+║ 年轻感         : ${result.consensus.youth.toFixed(1)}/10  ${result.consensus.youth >= 8 ? '✅' : '⚠️'}                   ║
 ║ 美颜提升度     : ${result.consensus.beautyEnhancement.toFixed(1)}/10  ${result.consensus.beautyEnhancement >= 8 ? '✅' : '⚠️'}                   ║
 ║ 魅力指数       : ${result.consensus.charm.toFixed(1)}/10  ${result.consensus.charm >= 8 ? '✅' : '⚠️'}                   ║
 ║ 吸引力评分     : ${result.consensus.attractiveness.toFixed(1)}/10  ${result.consensus.attractiveness >= 8 ? '✅' : '⚠️'}                   ║

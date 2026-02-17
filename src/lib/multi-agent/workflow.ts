@@ -297,9 +297,9 @@ export class MultiAgentWorkflow {
 
   private createEmptyScores(): QualityScores {
     return {
-      realism: 0, skinQuality: 0, faceSlimming: 0, wrinkleRemoval: 0,
+      beautyLevel: 0, skinQuality: 0, faceSlimming: 0, wrinkleRemoval: 0,
       eyeEnhancement: 0, brightness: 0, identityPreservation: 0,
-      composition: 0, lighting: 0, overall: 0
+      youthEffect: 0, glamour: 0, overall: 0
     };
   }
 
@@ -336,8 +336,8 @@ export class MultiAgentWorkflow {
 ║  Japanese Makeup (Yuki Tanaka)     : ${reviews[1]?.score.toFixed(1).padEnd(4)}/10  ${reviews[1]?.approved ? '✅' : '❌'}           ║
 ║  Korean Surgeon (Dr. Park)         : ${reviews[2]?.score.toFixed(1).padEnd(4)}/10  ${reviews[2]?.approved ? '✅' : '❌'}           ║
 ╠══════════════════════════════════════════════════════════════════════╣
-║  Identity Preservation : ${panel.consensus.identityPreservation.toFixed(1)}/10  ${panel.consensus.identityPreservation >= 8 ? '✅' : '⚠️'}                   ║
-║  Naturalness          : ${panel.consensus.naturalness.toFixed(1)}/10  ${panel.consensus.naturalness >= 8 ? '✅' : '⚠️'}                   ║
+║  Identity Preservation : ${panel.consensus.identityPreservation.toFixed(1)}/10  ${panel.consensus.identityPreservation >= 6 ? '✅' : '⚠️'}                   ║
+║  Youth Effect         : ${panel.consensus.youth.toFixed(1)}/10  ${panel.consensus.youth >= 8 ? '✅' : '⚠️'}                   ║
 ║  Beauty Enhancement   : ${panel.consensus.beautyEnhancement.toFixed(1)}/10  ${panel.consensus.beautyEnhancement >= 8 ? '✅' : '⚠️'}                   ║
 ║  Charm & Attractiveness: ${panel.consensus.attractiveness.toFixed(1)}/10  ${panel.consensus.attractiveness >= 8 ? '✅' : '⚠️'}                   ║
 ╠══════════════════════════════════════════════════════════════════════╣
@@ -355,12 +355,14 @@ ${panel.visualValidation.issues.length > 0 ? `║  Issues: ${panel.visualValidat
 ╠══════════════════════════════════════════════════════════════════════╣
 ║  QUALITY SCORES (Target: ${this.config.passingScore}/10)                           ║
 ║  --------------------------------------------------------------   ║
-║  Realism:              ${result.qualityScores.realism.toFixed(1)}/10                              ║
-║  Skin Quality:         ${result.qualityScores.skinQuality.toFixed(1)}/10                              ║
+║  Beauty Level:        ${result.qualityScores.beautyLevel.toFixed(1)}/10                              ║
+║  Skin Quality:        ${result.qualityScores.skinQuality.toFixed(1)}/10                              ║
 ║  Face Slimming:       ${result.qualityScores.faceSlimming.toFixed(1)}/10                             ║
 ║  Wrinkle Removal:     ${result.qualityScores.wrinkleRemoval.toFixed(1)}/10                             ║
 ║  Eye Enhancement:     ${result.qualityScores.eyeEnhancement.toFixed(1)}/10                             ║
 ║  Brightness:          ${result.qualityScores.brightness.toFixed(1)}/10                              ║
+║  Youth Effect:        ${result.qualityScores.youthEffect.toFixed(1)}/10                              ║
+║  Glamour:             ${result.qualityScores.glamour.toFixed(1)}/10                              ║
 ║  Identity Preservation: ${result.qualityScores.identityPreservation.toFixed(1)}/10                           ║
 ║  OVERALL:             ${result.qualityScores.overall.toFixed(1)}/10                              ║
 ${expertPanelInfo}
