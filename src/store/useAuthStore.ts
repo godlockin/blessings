@@ -12,11 +12,11 @@ interface AuthState {
 }
 
 /**
- * Strict validation pattern for invite codes.
- * Allows alphanumeric characters, hyphens, and underscores.
+ * Validation pattern for invite codes.
+ * Allows alphanumeric characters, hyphens, underscores, and special characters.
  * Minimum 8 characters, maximum 32 characters.
  */
-const INVITE_CODE_PATTERN = /^[A-Za-z0-9_-]{8,32}$/;
+const INVITE_CODE_PATTERN = /^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{8,32}$/;
 
 // Simple wrapper for storage to handle session expiry logic
 const authStorage = {
