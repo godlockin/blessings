@@ -23,7 +23,13 @@ dist-ssr
 *.sln
 *.sw?
 
+# Temporary files and cache
 sys_init/*
 .dev.vars
 .npm-cache/
+.pnpm-store/
 coverage/
+.wrangler/tmp/
+.DS_Store
+.claude/
+.trae/
