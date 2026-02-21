@@ -15,6 +15,7 @@ interface Env {
 interface ProcessRequest {
   image: string;
   inviteCode: string;
+  includeGodOfWealth?: boolean;
 }
 
 // Constants for optimization
@@ -131,10 +132,15 @@ async function uploadToOSS(env: Env, filename: string, base64Data: string): Prom
     const contentType = "image/png";
 
     const stringToSign = `PUT\n\n${contentType}\n${date}\n${resourcePath}`;
+    console.log(`[OSS] Signing request: ${stringToSign}`);
+    console.log(`[OSS] Using endpoint: ${endpoint}, bucket: ${env.OSS_BUCKET}`);
+    console.log(`[OSS] Filename: ${filename}`);
+
     const signature = await sign(env.OSS_ACCESS_KEY_SECRET, stringToSign);
     const auth = `OSS ${env.OSS_ACCESS_KEY_ID}:${signature}`;
 
     const bytes = await safeBase64ToUint8Array(base64Data);
+    console.log(`[OSS] Uploading ${bytes.length} bytes to ${url}`);
 
     const response = await fetch(url, {
       method: 'PUT',
@@ -151,16 +157,18 @@ async function uploadToOSS(env: Env, filename: string, base64Data: string): Prom
 
     if (!response.ok) {
       const text = await response.text();
+      console.error(`[OSS] Upload failed: ${response.status} ${text}`);
       throw new Error(`OSS upload failed: ${response.status} ${text}`);
     }
 
+    console.log(`[OSS] Upload successful: ${response.status}`);
     return url;
   };
 
   try {
     return await createRetryableOperation(uploadOperation);
   } catch (error) {
-    console.error("OSS Upload Error:", error);
+    console.error("[OSS] Upload Error:", error);
     return null;
   }
 }
@@ -177,7 +185,7 @@ interface CloudflareContext {
 }
 
 export const onRequestPost = async (context: CloudflareContext) => {
-  const { request, env } = context;
+  const { request, env, waitUntil } = context;
 
   // Security headers
   const headers = {
@@ -354,6 +362,16 @@ export const onRequestPost = async (context: CloudflareContext) => {
       // 4. Generate Prompt (Expert 3)
       await sendEvent('step', { id: 'prompt', status: 'processing' });
 
+      const godOfWealthInstruction = body.includeGodOfWealth
+        ? `特别彩蛋 - 武财神合影：
+      - 在人物身旁绘制武财神关羽，与人物并排站立或微微错开
+      - 关羽形象：红脸长须（标志性美髯）、丹凤眼、头戴绿巾或武官帽、身穿绿色战袍或锦袍、手持青龙偃月刀
+      - 关羽动作：同样双手抱拳作揖，与人物一起拜年
+      - 两人一起拱手作揖，展现"文武财神同贺新春"的喜庆场景
+      - 关羽表情威严而慈祥，带有节日喜气
+      - 构图确保人物和关羽都清晰可见，互动自然`
+        : '';
+
       const promptGenPrompt = `你是一个Prompt专家。根据以下人物特征，生成一个用于生成中国新年祝福照片的英文Prompt。
       人物特征：${analysisText}
       要求：
@@ -363,6 +381,7 @@ export const onRequestPost = async (context: CloudflareContext) => {
       4. 人物穿着喜庆的中国传统服饰或现代红色系服饰。
       5. 动作：双手抱拳作揖（中国传统拜年姿势），保持全身构图。
       6. 风格：**iPhone 16 Pro Max 真实摄影风格** - 保留皮肤纹理和毛孔细节，不过度磨皮；自然真实的光影过渡，智能HDR高光处理；色彩真实自然，白平衡准确；景深效果自然，主体清晰背景虚化适中；整体效果要像用手机近距离实拍的，真实自然有生活感。
+      ${godOfWealthInstruction}
       请只输出英文Prompt内容，不要包含其他解释。`;
 
       const promptOperation = async (): Promise<string> => {
@@ -467,17 +486,43 @@ export const onRequestPost = async (context: CloudflareContext) => {
           const batchId = `${timestamp}_${crypto.randomUUID()}`;
           const prefix = env.OSS_PREFIX ? `${env.OSS_PREFIX}/${batchId}` : batchId;
 
+          console.log(`[OSS] Starting upload with prefix: ${prefix}`);
+
           // Upload original image (fire and forget)
           const originalFilename = `${prefix}/original.jpg`;
-          uploadToOSS(env, originalFilename, body.image).catch(err => {
-            console.warn("Original image upload failed:", err);
-          });
+          console.log(`[OSS] Uploading original image: ${originalFilename}`);
+          const originalUploadPromise = uploadToOSS(env, originalFilename, body.image)
+            .then(url => {
+              if (url) {
+                console.log(`[OSS] Original image uploaded successfully: ${url}`);
+              } else {
+                console.warn(`[OSS] Original image upload returned null`);
+              }
+            })
+            .catch(err => {
+              console.warn("[OSS] Original image upload failed:", err);
+            });
 
           // Upload generated image (fire and forget)
           const generatedFilename = `${prefix}/generated.png`;
-          uploadToOSS(env, generatedFilename, generatedImageBase64).catch(err => {
-            console.warn("Generated image upload failed:", err);
-          });
+          console.log(`[OSS] Uploading generated image: ${generatedFilename}`);
+          const generatedUploadPromise = uploadToOSS(env, generatedFilename, generatedImageBase64)
+            .then(url => {
+              if (url) {
+                console.log(`[OSS] Generated image uploaded successfully: ${url}`);
+              } else {
+                console.warn(`[OSS] Generated image upload returned null`);
+              }
+            })
+            .catch(err => {
+              console.warn("[OSS] Generated image upload failed:", err);
+            });
+
+          // Use waitUntil to ensure uploads complete even after response is sent
+          if (waitUntil) {
+            waitUntil(originalUploadPromise.then(() => {}));
+            waitUntil(generatedUploadPromise.then(() => {}));
+          }
 
           // Stream image to client with optimized chunks
           const totalLength = generatedImageBase64.length;
@@ -487,7 +532,7 @@ export const onRequestPost = async (context: CloudflareContext) => {
             const chunk = generatedImageBase64.slice(offset, offset + BASE64_CHUNK_SIZE);
             await sendEvent('image_chunk', { chunk });
             offset += BASE64_CHUNK_SIZE;
-            
+
             // Small delay to prevent overwhelming the client
             await sleep(10);
           }
@@ -495,7 +540,7 @@ export const onRequestPost = async (context: CloudflareContext) => {
           // Send completion event
           await sendEvent('complete', { status: 'done' });
         } catch (error) {
-          console.error('Upload/stream error:', error);
+          console.error('[OSS] Upload/stream error:', error);
           // Don't fail the whole process if upload fails
         }
       };

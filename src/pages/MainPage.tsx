@@ -15,6 +15,8 @@ export default function MainPage() {
   // Use the new hook
   const {
     state,
+    includeGodOfWealth,
+    setIncludeGodOfWealth,
     setFile,
     setFileError,
     startProcessing,
@@ -154,6 +156,47 @@ export default function MainPage() {
                       <RefreshCw className="w-5 h-5" />
                     </button>
                   )}
+                </div>
+              )}
+
+              {/* Easter Egg: God of Wealth Option */}
+              {preview && !isProcessing && !result && (
+                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={includeGodOfWealth}
+                        onChange={(e) => setIncludeGodOfWealth(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`w-6 h-6 rounded-md border-2 transition-all ${
+                        includeGodOfWealth
+                          ? 'bg-china-red border-china-red'
+                          : 'border-gray-300 dark:border-gray-600 group-hover:border-china-red'
+                      }`}>
+                        {includeGodOfWealth && (
+                          <svg className="w-4 h-4 text-white mx-auto mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">🧧</span>
+                        <span className="font-semibold text-amber-800 dark:text-amber-200">
+                          与财神合影
+                        </span>
+                        <span className="text-xs px-2 py-0.5 bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full">
+                          彩蛋
+                        </span>
+                      </div>
+                      <p className="text-sm text-amber-700 dark:text-amber-300/80 mt-1">
+                        勾选后，武财神关羽将与您一起拱手拜年
+                      </p>
+                    </div>
+                  </label>
                 </div>
               )}
 

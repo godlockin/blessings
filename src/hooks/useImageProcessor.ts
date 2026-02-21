@@ -28,6 +28,8 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
     fileError: null, // Added for client-side file validation errors
   });
 
+  const [includeGodOfWealth, setIncludeGodOfWealth] = useState(false);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -225,7 +227,8 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
           },
           body: JSON.stringify({
             image: base64Data,
-            inviteCode: inviteCode.trim()
+            inviteCode: inviteCode.trim(),
+            includeGodOfWealth
           }),
           signal: abortControllerRef.current?.signal ?? null
         });
@@ -268,7 +271,7 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
       setState(prev => ({ ...prev, isProcessing: false }));
       abortControllerRef.current = null;
     }
-  }, [state.preview, inviteCode, log, onError, processServerSentEvents]);
+  }, [state.preview, inviteCode, includeGodOfWealth, log, onError, processServerSentEvents]);
 
   const cancelProcessing = useCallback(() => {
     if (abortControllerRef.current) {
@@ -280,6 +283,8 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
 
   return {
     state,
+    includeGodOfWealth,
+    setIncludeGodOfWealth,
     setFile,
     setFileError, // Export for client-side file validation errors
     startProcessing,

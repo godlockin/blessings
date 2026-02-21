@@ -33,6 +33,7 @@ export interface SSEEvent<T = unknown> {
 export interface ProcessImageRequest {
   image: string;
   inviteCode: string;
+  includeGodOfWealth?: boolean;
 }
 
 export interface StepEvent extends SSEEvent {
