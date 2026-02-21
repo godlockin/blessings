@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { STEP_CONFIG, type ProcessingState, type StepStatus, type ApiResponse } from '@/types';
+import { STEP_CONFIG, type ProcessingState, type StepStatus, type ApiResponse, type DeityOption } from '@/types';
 import { retryWithBackoff } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -28,7 +28,7 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
     fileError: null, // Added for client-side file validation errors
   });
 
-  const [includeGodOfWealth, setIncludeGodOfWealth] = useState(false);
+  const [selectedDeity, setSelectedDeity] = useState<DeityOption>('none');
 
   // Cleanup on unmount
   useEffect(() => {
@@ -228,7 +228,7 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
           body: JSON.stringify({
             image: base64Data,
             inviteCode: inviteCode.trim(),
-            includeGodOfWealth
+            selectedDeity
           }),
           signal: abortControllerRef.current?.signal ?? null
         });
@@ -271,7 +271,7 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
       setState(prev => ({ ...prev, isProcessing: false }));
       abortControllerRef.current = null;
     }
-  }, [state.preview, inviteCode, includeGodOfWealth, log, onError, processServerSentEvents]);
+  }, [state.preview, inviteCode, selectedDeity, log, onError, processServerSentEvents]);
 
   const cancelProcessing = useCallback(() => {
     if (abortControllerRef.current) {
@@ -283,10 +283,10 @@ export function useImageProcessor({ onSuccess, onError }: UseImageProcessorProps
 
   return {
     state,
-    includeGodOfWealth,
-    setIncludeGodOfWealth,
+    selectedDeity,
+    setSelectedDeity,
     setFile,
-    setFileError, // Export for client-side file validation errors
+    setFileError,
     startProcessing,
     cancelProcessing,
     resetState

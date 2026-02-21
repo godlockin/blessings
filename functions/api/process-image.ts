@@ -12,10 +12,83 @@ interface Env {
   ENVIRONMENT?: string;
 }
 
+type DeityOption = 'none' | 'wealth' | 'love' | 'mercy' | 'career' | 'blessing';
+
+interface DeityConfig {
+  name: string;
+  costume: string;
+  pose: string;
+  prompt: string;
+}
+
+const DEITY_CONFIGS: Record<DeityOption, DeityConfig> = {
+  none: {
+    name: '无',
+    costume: '喜庆的新年服饰',
+    pose: '双手抱拳作揖',
+    prompt: ''
+  },
+  wealth: {
+    name: '武财神关羽',
+    costume: '红色喜庆服饰，象征红红火火',
+    pose: '与关羽并排站立，两人同时双手抱拳作揖拜年',
+    prompt: `在人物身旁绘制武财神关羽，与人物并排站立：
+      - 关羽形象：红脸长须（标志性美髯）、丹凤眼、头戴绿巾或武官帽、身穿绿色战袍或锦袍、手持青龙偃月刀
+      - 关羽动作：双手抱拳作揖，与人物一起拜年
+      - 两人一起拱手作揖，展现"文武财神同贺新春"的喜庆场景
+      - 关羽表情威严而慈祥，带有节日喜气
+      - 人物穿着：红色或金色的喜庆新年服饰，象征财运亨通`
+  },
+  love: {
+    name: '月老',
+    costume: '粉色或红色系的温婉服饰',
+    pose: '与月老相对而立，双手合十或抱拳，表达虔诚祈愿',
+    prompt: `在人物身旁绘制月老，与人物相对而立：
+      - 月老形象：白发长须、面容慈祥、手持红线团和姻缘簿、身穿红色或粉色长袍
+      - 月老动作：一手持红线，一手轻抚胡须，微笑注视人物
+      - 两人之间可有红色姻缘线轻轻相连
+      - 人物穿着：粉色或红色系的温婉服饰，象征爱情甜蜜
+      - 背景可增加桃花、鸳鸯等爱情元素`
+  },
+  mercy: {
+    name: '观音菩萨',
+    costume: '素雅端庄的白色或淡蓝色服饰',
+    pose: '双手合十虔诚礼拜，或一手持莲一手合十',
+    prompt: `在人物身旁绘制观音菩萨，与人物并肩或略前：
+      - 观音形象：面容慈悲庄严、头戴宝冠、手持净瓶杨柳或莲花、身穿白色或淡蓝色飘逸长裙
+      - 观音动作：手持净瓶洒下甘露，或手持莲花慈悲注视
+      - 人物动作：双手合十虔诚礼拜
+      - 人物穿着：素雅端庄的白色或淡蓝色服饰
+      - 背景可增加祥云、莲花、佛光等圣洁元素`
+  },
+  career: {
+    name: '文曲星',
+    costume: '书卷气的蓝色或青色长衫',
+    pose: '与文曲星并肩，手持书卷或笔，作揖或拱手',
+    prompt: `在人物身旁绘制文曲星君，与人物并肩而立：
+      - 文曲星形象：面容儒雅、头戴官帽或书生巾、手持毛笔或书卷、身穿蓝色或青色官服或长衫
+      - 文曲星动作：手持毛笔指点江山，或手持书卷微笑
+      - 两人并肩而立，可共同探讨书卷
+      - 人物穿着：书卷气的蓝色或青色长衫，象征文运昌隆
+      - 背景可增加书卷、笔墨、文昌塔等文运元素`
+  },
+  blessing: {
+    name: '福神',
+    costume: '大红色喜庆服饰，可带金色装饰',
+    pose: '与福神同向站立，一起伸手送福或同时作揖',
+    prompt: `在人物身旁绘制福神，与人物同向站立：
+      - 福神形象：面容圆润喜庆、笑容可掬、手持"福"字或如意、身穿大红色锦袍、头戴福字帽
+      - 福神动作：手持大福字，或双手捧如意，笑容满面
+      - 两人一起向镜头送福，或同时作揖拜年
+      - 人物穿着：大红色喜庆服饰，可带金色装饰，象征福气满满
+      - 背景可增加蝙蝠（福）、如意、金元宝等福运元素`
+  }
+};
+
 interface ProcessRequest {
   image: string;
   inviteCode: string;
-  includeGodOfWealth?: boolean;
+  selectedDeity?: DeityOption;
 }
 
 // Constants for optimization
@@ -362,14 +435,16 @@ export const onRequestPost = async (context: CloudflareContext) => {
       // 4. Generate Prompt (Expert 3)
       await sendEvent('step', { id: 'prompt', status: 'processing' });
 
-      const godOfWealthInstruction = body.includeGodOfWealth
-        ? `特别彩蛋 - 武财神合影：
-      - 在人物身旁绘制武财神关羽，与人物并排站立或微微错开
-      - 关羽形象：红脸长须（标志性美髯）、丹凤眼、头戴绿巾或武官帽、身穿绿色战袍或锦袍、手持青龙偃月刀
-      - 关羽动作：同样双手抱拳作揖，与人物一起拜年
-      - 两人一起拱手作揖，展现"文武财神同贺新春"的喜庆场景
-      - 关羽表情威严而慈祥，带有节日喜气
-      - 构图确保人物和关羽都清晰可见，互动自然`
+      // Get deity configuration
+      const selectedDeity: DeityOption = body.selectedDeity || 'none';
+      const deityConfig = DEITY_CONFIGS[selectedDeity];
+
+      const deityInstruction = selectedDeity !== 'none'
+        ? `特别彩蛋 - 与${deityConfig.name}合影：
+      ${deityConfig.prompt}
+      - 构图确保人物和${deityConfig.name}都清晰可见，互动自然，画面和谐
+      - 人物服饰要求：${deityConfig.costume}
+      - 人物姿势要求：${deityConfig.pose}`
         : '';
 
       const promptGenPrompt = `你是一个Prompt专家。根据以下人物特征，生成一个用于生成中国新年祝福照片的英文Prompt。
@@ -378,10 +453,10 @@ export const onRequestPost = async (context: CloudflareContext) => {
       1. 保持人物主要特征（如性别、年龄、族裔特点），确保人物具有高辨识度，亲友能认出是本人。
       2. 智能美颜优化：保留皮肤纹理和毛孔细节，不过度磨皮；自然真实的光影过渡；针对不同肤质（特别是外国人）保持真实的肤质特点，不强制改变为亚洲人风格。
       3. 背景为中国新年氛围（红色、灯笼、烟花等）。
-      4. 人物穿着喜庆的中国传统服饰或现代红色系服饰。
-      5. 动作：双手抱拳作揖（中国传统拜年姿势），保持全身构图。
+      ${selectedDeity === 'none' ? '4. 人物穿着喜庆的中国传统服饰或现代红色系服饰。\n      5. 动作：双手抱拳作揖（中国传统拜年姿势），保持全身构图。' : `4. 人物穿着：${deityConfig.costume}
+      5. 人物姿势：${deityConfig.pose}，保持全身构图。`}
       6. 风格：**iPhone 16 Pro Max 真实摄影风格** - 保留皮肤纹理和毛孔细节，不过度磨皮；自然真实的光影过渡，智能HDR高光处理；色彩真实自然，白平衡准确；景深效果自然，主体清晰背景虚化适中；整体效果要像用手机近距离实拍的，真实自然有生活感。
-      ${godOfWealthInstruction}
+      ${deityInstruction}
       请只输出英文Prompt内容，不要包含其他解释。`;
 
       const promptOperation = async (): Promise<string> => {

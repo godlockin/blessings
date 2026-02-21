@@ -2,7 +2,7 @@ import { useCallback, useRef, useMemo } from 'react';
 import { Upload, Download, RefreshCw, LogOut, Image as ImageIcon } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
-import { APP_CONFIG } from '@/types';
+import { APP_CONFIG, DEITY_CONFIGS, type DeityOption } from '@/types';
 import { compressImage, isValidImageFile } from '@/lib/imageCompression';
 import { useImageProcessor } from '@/hooks/useImageProcessor';
 
@@ -15,8 +15,8 @@ export default function MainPage() {
   // Use the new hook
   const {
     state,
-    includeGodOfWealth,
-    setIncludeGodOfWealth,
+    selectedDeity,
+    setSelectedDeity,
     setFile,
     setFileError,
     startProcessing,
@@ -159,44 +159,64 @@ export default function MainPage() {
                 </div>
               )}
 
-              {/* Easter Egg: God of Wealth Option */}
+              {/* Deity Selection */}
               {preview && !isProcessing && !result && (
                 <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={includeGodOfWealth}
-                        onChange={(e) => setIncludeGodOfWealth(e.target.checked)}
-                        className="sr-only"
-                      />
-                      <div className={`w-6 h-6 rounded-md border-2 transition-all ${
-                        includeGodOfWealth
-                          ? 'bg-china-red border-china-red'
-                          : 'border-gray-300 dark:border-gray-600 group-hover:border-china-red'
-                      }`}>
-                        {includeGodOfWealth && (
-                          <svg className="w-4 h-4 text-white mx-auto mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-2xl">✨</span>
+                    <span className="font-semibold text-amber-800 dark:text-amber-200">
+                      选择神仙合影
+                    </span>
+                    <span className="text-xs px-2 py-0.5 bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full">
+                      彩蛋
+                    </span>
+                  </div>
+                  <p className="text-sm text-amber-700 dark:text-amber-300/80 mb-3">
+                    选择与哪位神仙同框，将自动调整您的服饰和姿势
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.keys(DEITY_CONFIGS) as DeityOption[]).map((deityKey) => {
+                      const deity = DEITY_CONFIGS[deityKey];
+                      const isSelected = selectedDeity === deityKey;
+                      return (
+                        <button
+                          key={deityKey}
+                          onClick={() => setSelectedDeity(deityKey)}
+                          className={`p-3 rounded-lg border-2 text-left transition-all ${
+                            isSelected
+                              ? 'border-china-red bg-red-50 dark:bg-red-900/20'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{deity.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className={`font-medium text-sm ${
+                                isSelected ? 'text-china-red' : 'text-gray-800 dark:text-gray-200'
+                              }`}>
+                                {deity.name}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                {deity.description}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedDeity !== 'none' && (
+                    <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-amber-200 dark:border-amber-800/30">
+                      <div className="text-sm text-gray-700 dark:text-gray-300">
+                        <span className="font-medium text-china-red">着装：</span>
+                        {DEITY_CONFIGS[selectedDeity].costume}
+                      </div>
+                      <div className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                        <span className="font-medium text-china-red">姿势：</span>
+                        {DEITY_CONFIGS[selectedDeity].pose}
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">🧧</span>
-                        <span className="font-semibold text-amber-800 dark:text-amber-200">
-                          与财神合影
-                        </span>
-                        <span className="text-xs px-2 py-0.5 bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full">
-                          彩蛋
-                        </span>
-                      </div>
-                      <p className="text-sm text-amber-700 dark:text-amber-300/80 mt-1">
-                        勾选后，武财神关羽将与您一起拱手拜年
-                      </p>
-                    </div>
-                  </label>
+                  )}
                 </div>
               )}
 
